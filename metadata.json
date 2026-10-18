@@ -1,0 +1,6 @@
+{
+  "name": "Nova Hunger Food",
+  "description": "Premium full-stack food delivery web application with dedicated customer, rider, restaurant owner, and administrator portals, live order tracking, and rider approval workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
