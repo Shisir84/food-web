@@ -11,11 +11,12 @@ import {
   ThemeSettings,
 } from '../types/index.ts';
 
-const TOKEN_KEY = 'nove_token';
+const TOKEN_KEY = 'nova_hunger_token';
+const LEGACY_TOKEN_KEY = 'nove_token';
 
 export const api = {
   getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
   },
 
   setToken(token: string): void {
@@ -24,6 +25,7 @@ export const api = {
 
   clearToken(): void {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
   },
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -61,6 +63,20 @@ export const api = {
     }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+    this.setToken(res.token);
+    return res;
+  },
+
+  async verifyFirebaseAdmin(idToken: string) {
+    const res = await this.request<{
+      token: string;
+      user: User;
+      firebaseUid: string;
+      claims: { admin: boolean };
+    }>('/api/auth/firebase-verify-admin', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
     });
     this.setToken(res.token);
     return res;

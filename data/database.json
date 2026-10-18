@@ -113,7 +113,8 @@
     "tok_admin_1792317041998_72l25p0": "usr_admin",
     "tok_admin_1792317101826_25vdg6b": "usr_admin",
     "tok_customer_1792318725468_u9b3jwn": "usr_customer_1",
-    "tok_admin_1792318728820_0a3h9se": "usr_admin"
+    "tok_admin_1792318728820_0a3h9se": "usr_admin",
+    "tok_admin_1792326290655_bgp2pcp": "usr_admin"
   },
   "riders": [
     {
@@ -689,6 +690,16 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1792323664228",
+      "adminId": "system",
+      "adminEmail": "shisirtharu51@gmail.com",
+      "action": "CONTACT_SUPPORT_INQUIRY",
+      "targetType": "user",
+      "targetId": "support",
+      "details": "Customer inquiry from shisir tharu (shisirtharu51@gmail.com): [delevery late] hey sir my delivery was too late...",
+      "timestamp": "2026-10-18T11:41:04.228Z"
+    },
     {
       "id": "log_1792317117951",
       "adminId": "usr_admin",

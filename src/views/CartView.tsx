@@ -69,9 +69,10 @@ export const CartView: React.FC<CartViewProps> = ({ onNavigate }) => {
         </p>
         <button
           onClick={() => onNavigate('/restaurants')}
-          className="mt-4 px-6 py-3 text-xs font-bold text-black bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-orange-500/20"
+          className="btn-primary mt-4 px-6 py-3 text-xs font-bold shadow-md shadow-[#FF7900]/20 inline-flex items-center gap-2"
         >
-          Explore Restaurants
+          <span>Explore Restaurants</span>
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     );
@@ -279,7 +280,7 @@ export const CartView: React.FC<CartViewProps> = ({ onNavigate }) => {
 
             <button
               onClick={() => onNavigate('/checkout')}
-              className="w-full py-3.5 text-xs font-bold text-black bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
+              className="btn-primary w-full py-3.5 text-xs font-bold shadow-lg shadow-[#FF7900]/20 flex items-center justify-center gap-2"
             >
               <span>Proceed to Checkout</span>
               <ArrowRight className="w-4 h-4" />

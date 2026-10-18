@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Clock, ShieldAlert, Store, ShieldCheck, RefreshCw, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 
@@ -7,9 +7,23 @@ interface RestaurantPendingViewProps {
 }
 
 export const RestaurantPendingView: React.FC<RestaurantPendingViewProps> = ({ onNavigate }) => {
-  const { restaurantProfile, user, logout, quickLogin, refreshUser } = useAuth();
+  const { restaurantProfile, user, logout, refreshUser } = useAuth();
+  const [isChecking, setIsChecking] = useState(false);
+  const [checkNotice, setCheckNotice] = useState<string | null>(null);
 
   const isRejected = restaurantProfile?.status === 'rejected';
+
+  const handleCheckStatus = async () => {
+    setIsChecking(true);
+    setCheckNotice(null);
+    try {
+      await refreshUser();
+      setCheckNotice('Status refreshed.');
+      setTimeout(() => setCheckNotice(null), 3000);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
@@ -85,44 +99,50 @@ export const RestaurantPendingView: React.FC<RestaurantPendingViewProps> = ({ on
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-3 pt-2">
+        {checkNotice && (
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
+            {checkNotice}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button
-            onClick={async () => {
-              await refreshUser();
-            }}
+            onClick={handleCheckStatus}
+            disabled={isChecking}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#0B0B0D] border border-[#2B2B30] text-stone-200 hover:border-[#FF7900] transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-[#FF7900]" />
-            <span>Check Approval Status</span>
+            <RefreshCw className={`w-3.5 h-3.5 text-[#FF7900] ${isChecking ? 'animate-spin' : ''}`} />
+            <span>{isChecking ? 'Checking...' : 'Check Approval Status'}</span>
           </button>
+
+          <button
+            onClick={() => onNavigate('/')}
+            className="btn-secondary px-4 py-2 text-xs font-semibold"
+          >
+            Return to Homepage
+          </button>
+
           <button
             onClick={() => {
               logout();
               onNavigate('/');
             }}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#0B0B0D] border border-[#2B2B30] text-stone-300 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#0B0B0D] border border-[#2B2B30] text-rose-400 hover:bg-rose-500/10 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
           </button>
         </div>
 
-        {/* Quick helper for evaluators to test Admin Approval flow */}
-        <div className="pt-4 border-t border-[#2B2B30] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-[#B8B8C0] text-left">
-            <span>Want to test the kitchen approval workflow? Log in as </span>
-            <strong className="text-white">Admin</strong> to approve or reject this restaurant.
-          </div>
-
+        {/* Admin Login link */}
+        <div className="pt-4 border-t border-[#2B2B30] flex items-center justify-center text-xs text-[#B8B8C0]">
+          <span>Are you an administrator? </span>
           <button
-            onClick={async () => {
-              await quickLogin('admin');
-              onNavigate('/admin/restaurants');
-            }}
-            className="btn-primary px-4 py-2 text-xs font-bold shrink-0 flex items-center gap-1.5"
+            onClick={() => onNavigate('/admin/login')}
+            className="text-[#FF9D00] hover:underline font-semibold ml-1.5 flex items-center gap-1"
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Open Admin Review</span>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Admin Login</span>
           </button>
         </div>
       </div>

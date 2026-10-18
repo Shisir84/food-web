@@ -138,17 +138,17 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="w-7 h-7 rounded-lg bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center font-bold text-sm"
+                className="w-8 h-8 rounded-lg bg-[#151518] border border-[#2B2B30] text-stone-300 hover:text-white hover:border-[#FF7900] hover:scale-105 active:scale-95 transition-all flex items-center justify-center font-bold text-sm"
               >
                 -
               </button>
-              <span className="text-xs font-bold text-stone-100 tabular-nums px-2">
+              <span className="text-xs font-bold text-white tabular-nums px-2">
                 {quantity}
               </span>
               <button
                 type="button"
                 onClick={() => setQuantity((q) => q + 1)}
-                className="w-7 h-7 rounded-lg bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center font-bold text-sm"
+                className="w-8 h-8 rounded-lg bg-[#151518] border border-[#2B2B30] text-stone-300 hover:text-white hover:border-[#FF7900] hover:scale-105 active:scale-95 transition-all flex items-center justify-center font-bold text-sm"
               >
                 +
               </button>
@@ -156,10 +156,10 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
           </div>
         </div>
 
-        <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between gap-4">
+        <div className="p-4 bg-[#0B0B0D] border-t border-[#2B2B30] flex items-center justify-between gap-4">
           <div>
-            <span className="text-[11px] text-stone-400 block">Total Price</span>
-            <span className="text-base font-bold text-orange-400 tabular-nums">
+            <span className="text-[11px] text-[#B8B8C0] block">Total Price</span>
+            <span className="text-base font-bold text-[#FF9D00] tabular-nums">
               ${calculatedTotal.toFixed(2)}
             </span>
           </div>
@@ -170,7 +170,7 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
               onConfirm(quantity, selectedOptions);
               onClose();
             }}
-            className="px-6 py-2.5 text-xs font-bold text-stone-950 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl hover:opacity-95 active:scale-95 transition-all shadow-md shadow-orange-500/20"
+            className="btn-primary px-6 py-2.5 text-xs font-bold shadow-md shadow-[#FF7900]/20"
           >
             Add to Order
           </button>

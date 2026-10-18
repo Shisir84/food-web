@@ -36,7 +36,7 @@ Dedicated portals ensure clean role isolation:
 | **Restaurant Manager** (Flame & Crust) | `owner.flame@novahunger.com` | `pass123` | Kitchen Dashboard (`/restaurant/dashboard`) |
 | **Master Admin** | `admin@novahunger.com` | `admin123` | Admin Console (`/admin/dashboard`) |
 
-*(Both `@novahunger.com` and `@novehunder.com` email handles are seamlessly recognized).*
+*(All portal credentials use the standard @novahunger.com domain).*
 
 ---
 

@@ -181,9 +181,10 @@ export interface AdminAuditLog {
   adminId: string;
   adminEmail: string;
   action: string;
-  targetType: 'rider' | 'restaurant' | 'order' | 'settings' | 'user';
+  targetType: 'rider' | 'restaurant' | 'order' | 'settings' | 'user' | 'system';
   targetId: string;
   details: string;
+  ipAddress?: string;
   timestamp: string;
 }
 

@@ -14,8 +14,15 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  KeyRound,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
+import {
+  auth,
+  sendPasswordResetEmail,
+  formatFirebaseAuthError,
+} from '../lib/firebase.ts';
 
 interface AuthViewProps {
   portal: 'customer' | 'rider' | 'restaurant' | 'admin';
@@ -28,7 +35,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
   mode,
   onNavigate,
 }) => {
-  const { login, register } = useAuth();
+  const { login, loginAdminWithFirebase, register } = useAuth();
 
   // Common fields
   const [name, setName] = useState('');
@@ -52,14 +59,53 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Forgot password state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
+
+  const handleForgotPassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const targetEmail = (forgotEmail || email).trim();
+    if (!targetEmail) {
+      setErrorMessage('Please enter your email address to receive a password reset link.');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetSuccessMessage(null);
+    setErrorMessage(null);
+
+    try {
+      await sendPasswordResetEmail(auth, targetEmail);
+      setResetSuccessMessage(
+        `Password reset email sent to ${targetEmail}! Please check your inbox and follow the instructions to reset your password.`
+      );
+      setShowForgotModal(false);
+    } catch (err: any) {
+      setErrorMessage(formatFirebaseAuthError(err));
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+    setResetSuccessMessage(null);
 
     try {
       if (mode === 'login') {
-        const res = await login(email, password, portal === 'customer' ? undefined : portal);
+        let res;
+        if (portal === 'admin') {
+          // Firebase Authentication integration for Administrator
+          res = await loginAdminWithFirebase(email, password);
+        } else {
+          res = await login(email, password, portal === 'customer' ? undefined : portal);
+        }
+
         const userRole = res?.user?.role;
         if (userRole === 'admin') {
           onNavigate('/admin/dashboard');
@@ -113,7 +159,11 @@ export const AuthView: React.FC<AuthViewProps> = ({
         }
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed. Please verify your credentials.');
+      if (portal === 'admin') {
+        setErrorMessage(formatFirebaseAuthError(err));
+      } else {
+        setErrorMessage(err.message || 'Authentication failed. Please verify your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -410,9 +460,23 @@ export const AuthView: React.FC<AuthViewProps> = ({
           )}
 
           <div>
-            <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-semibold text-[#B8B8C0]">
+                Password
+              </label>
+              {mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setShowForgotModal(true);
+                  }}
+                  className="text-[11px] font-medium text-[#FF9D00] hover:underline transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              )}
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -433,10 +497,24 @@ export const AuthView: React.FC<AuthViewProps> = ({
             </div>
           </div>
 
+          {resetSuccessMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{resetSuccessMessage}</span>
+            </div>
+          )}
+
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
+              <div className="space-y-1">
+                <span className="block">{errorMessage}</span>
+                {portal === 'admin' && errorMessage.includes('Account not found') && (
+                  <span className="block text-[11px] text-[#B8B8C0]">
+                    To provision the initial admin user, run: <code className="bg-black/60 px-1.5 py-0.5 rounded text-white font-mono">ADMIN_INITIAL_PASSWORD="..." npm run setup-admin</code> or create user in Firebase Console with claim <code className="bg-black/60 px-1.5 py-0.5 rounded text-white font-mono">&#123; admin: true &#125;</code>.
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -493,6 +571,60 @@ export const AuthView: React.FC<AuthViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#151518] border border-[#2B2B30] rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-center text-[#FF7900]">
+                <KeyRound className="w-4 h-4" />
+              </div>
+              <h2 className="text-lg font-bold text-white">Reset Account Password</h2>
+            </div>
+
+            <p className="text-xs text-[#B8B8C0] leading-relaxed">
+              Enter the email address registered with your account. We will send a secure password reset link via Firebase Authentication.
+            </p>
+
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
+                  Registered Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-[#2B2B30] text-xs font-semibold text-[#B8B8C0] hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="btn-primary px-5 py-2.5 text-xs font-bold flex items-center gap-2"
+                >
+                  {resetLoading ? 'Sending link...' : 'Send Reset Link'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

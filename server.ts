@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { db } from './server/db.ts';
-import {
+import type {
   User,
   RiderProfile,
   RestaurantProfile,
@@ -13,6 +13,7 @@ import {
   AdminAuditLog,
   NotificationItem,
 } from './src/types/index.ts';
+import { verifyAdminIdToken } from './server/firebaseAdmin.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +61,86 @@ function requireRole(role: string | string[]) {
 // -------------------------------------------------------------
 // AUTHENTICATION ROUTES
 // -------------------------------------------------------------
+
+// POST /api/auth/firebase-verify-admin
+// Exchanges cryptographically verified Firebase ID token for an authorized admin session.
+// Strictly enforces custom claim { admin: true } — matching email address alone is NOT sufficient.
+app.post('/api/auth/firebase-verify-admin', async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ error: 'Firebase ID token is required' });
+  }
+
+  try {
+    const verified = await verifyAdminIdToken(idToken);
+
+    if (!verified.isAdmin) {
+      return res.status(403).json({
+        error: 'Forbidden: Account lacks server-verified administrator claims ({ admin: true }). A matching email address alone does not grant administrator access.',
+      });
+    }
+
+    const users = db.get('users');
+    let adminUser = users.find(
+      (u) => u.role === 'admin' || u.email.toLowerCase() === verified.email.toLowerCase()
+    );
+
+    if (!adminUser) {
+      adminUser = {
+        id: `usr_admin_${verified.uid.substring(0, 12)}`,
+        name: 'Nova Master Admin',
+        email: verified.email,
+        role: 'admin',
+        createdAt: new Date().toISOString(),
+      };
+      users.push(adminUser);
+      db.set('users', users);
+    } else {
+      if (adminUser.email.toLowerCase() !== verified.email.toLowerCase()) {
+        adminUser.email = verified.email;
+        db.set('users', users);
+      }
+    }
+
+    const tokens = db.get('tokens');
+    const sessionToken = `tok_admin_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    tokens[sessionToken] = adminUser.id;
+    db.set('tokens', tokens);
+
+    // Record audit log entry
+    const auditLogs = db.get('auditLogs');
+    auditLogs.unshift({
+      id: `log_${Date.now()}`,
+      adminId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: 'ADMIN_SIGN_IN',
+      targetType: 'system',
+      targetId: 'auth_console',
+      details: `Administrator authenticated via Firebase Auth (UID: ${verified.uid}, claims: { admin: true })`,
+      ipAddress: req.ip || '127.0.0.1',
+      timestamp: new Date().toISOString(),
+    });
+    db.set('auditLogs', auditLogs);
+
+    return res.json({
+      token: sessionToken,
+      user: {
+        id: adminUser.id,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: adminUser.role,
+        phone: adminUser.phone,
+      },
+      firebaseUid: verified.uid,
+      claims: { admin: true },
+    });
+  } catch (err: any) {
+    console.error('Firebase admin token verification error:', err);
+    return res.status(401).json({
+      error: err.message || 'Firebase token verification failed.',
+    });
+  }
+});
 
 // POST /api/auth/login
 app.post('/api/auth/login', (req: Request, res: Response) => {

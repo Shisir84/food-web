@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  ShoppingBag,
-  MapPin,
-  Clock,
-  ArrowRight,
-  Plus,
-  CheckCircle2,
-  Phone,
-  User as UserIcon,
-} from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { api } from '../services/api.ts';
 import { Order, Address } from '../types/index.ts';
+import { OrderHistory } from '../components/OrderHistory.tsx';
 
 interface CustomerDashboardViewProps {
   onNavigate: (path: string) => void;
@@ -32,17 +24,19 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({ on
   const [instructions, setInstructions] = useState('');
   const [addrError, setAddrError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadOrders() {
-      try {
-        const data = await api.getMyOrders();
-        setOrders(data);
-      } catch (err) {
-        console.warn('Failed to load user orders:', err);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadOrders = async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getMyOrders();
+      setOrders(data);
+    } catch (err) {
+      console.warn('Failed to load user orders:', err);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadOrders();
   }, []);
 
@@ -120,79 +114,14 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({ on
         </button>
       </div>
 
-      {/* ORDERS TAB */}
+      {/* ORDERS TAB (ORDER HISTORY COMPONENT) */}
       {activeTab === 'orders' && (
-        <div className="space-y-4">
-          {orders.length > 0 ? (
-            orders.map((ord) => (
-              <div
-                key={ord.id}
-                className="p-5 sm:p-6 rounded-2xl bg-[#121316] border border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-4"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm text-stone-100">
-                      {ord.orderNumber}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        ord.status === 'delivered'
-                          ? 'bg-emerald-500/15 text-emerald-400'
-                          : 'bg-orange-500/15 text-orange-400'
-                      }`}
-                    >
-                      {ord.status.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  <strong className="text-xs text-stone-300 block">{ord.restaurantName}</strong>
-
-                  <p className="text-xs text-stone-400">
-                    {ord.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')}
-                  </p>
-
-                  <span className="text-[11px] text-stone-500 block">
-                    Ordered {new Date(ord.createdAt).toLocaleDateString()} at{' '}
-                    {new Date(ord.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between md:justify-end gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-stone-800">
-                  <div className="text-right">
-                    <span className="font-display font-extrabold text-base text-orange-400 tabular-nums">
-                      ${ord.total.toFixed(2)}
-                    </span>
-                    <span className="text-[11px] text-stone-500 block capitalize">
-                      {ord.paymentMethod.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => onNavigate(`/track-order/${ord.id}`)}
-                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors"
-                  >
-                    <span>Track Order</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-12 text-center rounded-2xl bg-[#121316] border border-stone-800 space-y-3">
-              <ShoppingBag className="w-8 h-8 text-stone-600 mx-auto" />
-              <p className="text-xs text-stone-400">You haven't placed any orders yet.</p>
-              <button
-                onClick={() => onNavigate('/restaurants')}
-                className="px-4 py-2 text-xs font-bold text-black bg-orange-500 rounded-xl"
-              >
-                Browse Menus
-              </button>
-            </div>
-          )}
-        </div>
+        <OrderHistory
+          orders={orders}
+          isLoading={isLoading}
+          onNavigate={onNavigate}
+          onRefreshOrders={loadOrders}
+        />
       )}
 
       {/* ADDRESSES TAB */}

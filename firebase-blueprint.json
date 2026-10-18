@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "System administrator profile with elevated privileges",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile in Nova Hunger Food",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "role": { "type": "string", "enum": ["customer", "rider", "restaurant", "admin"] },
+        "phone": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Food delivery order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 64 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "restaurantId": { "type": "string", "maxLength": 128 },
+        "riderId": { "type": "string", "maxLength": 128 },
+        "status": {
+          "type": "string",
+          "enum": [
+            "placed",
+            "restaurant_accepted",
+            "preparing",
+            "ready_for_pickup",
+            "rider_assigned",
+            "picked_up",
+            "out_for_delivery",
+            "delivered",
+            "cancelled"
+          ]
+        },
+        "total": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "orderNumber", "customerId", "restaurantId", "status", "total"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Administrator roster for server and rules authorization"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Food delivery orders"
+    }
+  }
+}

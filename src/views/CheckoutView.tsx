@@ -398,7 +398,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ onNavigate }) => {
             <button
               onClick={handlePlaceOrder}
               disabled={isSubmitting}
-              className="w-full py-4 text-xs font-bold text-black bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
+              className="btn-primary w-full py-4 text-xs font-bold shadow-lg shadow-[#FF7900]/20 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <span>Placing Your Order...</span>

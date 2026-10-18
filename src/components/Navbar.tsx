@@ -6,7 +6,10 @@ import {
   ChevronDown,
   Shield,
   Layers,
-  UtensilsCrossed,
+  Menu,
+  X,
+  Bike,
+  Store,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
@@ -20,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
   const { user, riderProfile, restaurantProfile, logout } = useAuth();
   const { items } = useCart();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const cartCount = items.reduce((acc, it) => acc + it.quantity, 0);
 
@@ -35,9 +39,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
     return '/customer/dashboard';
   };
 
+  const handleMobileNav = (path: string) => {
+    setIsMobileMenuOpen(false);
+    onNavigate(path);
+  };
+
   return (
-    <header className="sticky top-0 z-50 bg-[#0B0B0D]/90 backdrop-blur-md border-b border-[#2B2B30]/80 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-8">
+    <header className="sticky top-0 z-50 bg-[#0B0B0D]/95 backdrop-blur-md border-b border-[#2B2B30]/80 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4 lg:gap-8">
         {/* Zone 1: Brand Wordmark */}
         <div className="flex items-center gap-3 shrink-0">
           <button
@@ -59,8 +68,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
           </button>
         </div>
 
-        {/* Zone 2: Navigation Links (single-line whitespace-nowrap) */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#B8B8C0]">
+        {/* Zone 2: Navigation Links (Desktop) */}
+        <nav className="hidden lg:flex items-center gap-6 xl:gap-7 text-sm font-medium text-[#B8B8C0]">
           <button
             onClick={() => onNavigate('/')}
             className={`transition-all duration-200 hover:text-[#FF9D00] hover:-translate-y-0.5 whitespace-nowrap ${
@@ -113,12 +122,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
           </button>
         </nav>
 
-        {/* Zone 3: Actions (Cart + Account + Admin Login) */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Actions (Cart + Account + Admin Login + Mobile Menu Button) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Cart Button */}
           <button
             onClick={() => onNavigate('/cart')}
-            className="relative flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#151518] border border-[#2B2B30] text-[#FFFFFF] hover:border-[#FF7900]/60 hover:text-[#FF9D00] transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            className="relative flex items-center gap-2 px-3 py-2 rounded-xl bg-[#151518] border border-[#2B2B30] text-[#FFFFFF] hover:border-[#FF7900]/60 hover:text-[#FF9D00] transition-all duration-200 hover:scale-[1.02] active:scale-95"
             aria-label="Shopping Cart"
           >
             <ShoppingBag className="w-4 h-4 text-[#FF7900]" />
@@ -197,27 +206,119 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
           ) : (
             <button
               onClick={() => onNavigate('/customer/login')}
-              className="px-4 py-2 text-xs font-bold text-black bg-gradient-to-r from-[#FF7900] to-[#FF9D00] rounded-xl hover:opacity-95 active:scale-95 transition-all duration-200 shadow-md shadow-[#FF7900]/20 hover:scale-[1.02]"
+              className="px-3.5 sm:px-4 py-2 text-xs font-bold text-black bg-gradient-to-r from-[#FF7900] to-[#FF9D00] rounded-xl hover:opacity-95 active:scale-95 transition-all duration-200 shadow-md shadow-[#FF7900]/20 hover:scale-[1.02] whitespace-nowrap"
             >
               Sign In
             </button>
           )}
 
-          {/* Discreet Admin Login in top-right of homepage */}
+          {/* Dedicated Admin Login Link (Top-Right requirement) */}
           <button
-            onClick={() => onNavigate('/admin/login')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium rounded-lg transition-all duration-200 ${
+            onClick={() => onNavigate(user?.role === 'admin' ? '/admin/dashboard' : '/admin/login')}
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-200 border whitespace-nowrap ${
               currentPath === '/admin/login' || currentPath.startsWith('/admin')
-                ? 'text-[#FF9D00] bg-[#151518] border border-[#FF7900]/40'
-                : 'text-[#B8B8C0] hover:text-white hover:bg-[#151518]'
+                ? 'text-[#FF9D00] bg-[#151518] border-[#FF7900]/50 shadow-sm shadow-[#FF7900]/20'
+                : 'text-[#B8B8C0] border-[#2B2B30] bg-[#151518]/60 hover:text-white hover:border-[#FF7900]/40 hover:bg-[#151518]'
             }`}
-            title="Authorized Administrator Access"
+            title="Authorized Administrator Login"
           >
             <Shield className="w-3.5 h-3.5 text-[#FF7900]" />
-            <span className="hidden xl:inline">Admin</span>
+            <span>Admin Login</span>
+          </button>
+
+          {/* Mobile Menu Hamburger Toggle */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden p-2 rounded-xl bg-[#151518] border border-[#2B2B30] text-[#B8B8C0] hover:text-white hover:border-[#FF7900]/40 transition-colors"
+            aria-label="Toggle Navigation Menu"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-[#0B0B0D] border-b border-[#2B2B30] px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top-4 duration-200">
+          <nav className="flex flex-col space-y-1 text-sm font-medium text-[#B8B8C0]">
+            <button
+              onClick={() => handleMobileNav('/')}
+              className={`px-3 py-2 rounded-xl text-left transition-colors ${
+                currentPath === '/' ? 'bg-[#151518] text-[#FF7900] font-semibold' : 'hover:text-white'
+              }`}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => handleMobileNav('/restaurants')}
+              className={`px-3 py-2 rounded-xl text-left transition-colors ${
+                currentPath === '/restaurants' ? 'bg-[#151518] text-[#FF7900] font-semibold' : 'hover:text-white'
+              }`}
+            >
+              Restaurants
+            </button>
+            <button
+              onClick={() => handleMobileNav('/offers')}
+              className={`px-3 py-2 rounded-xl text-left transition-colors ${
+                currentPath === '/offers' ? 'bg-[#151518] text-[#FF7900] font-semibold' : 'hover:text-white'
+              }`}
+            >
+              Offers
+            </button>
+            <button
+              onClick={() => handleMobileNav('/customer/orders')}
+              className={`px-3 py-2 rounded-xl text-left transition-colors ${
+                currentPath.startsWith('/customer/orders') ? 'bg-[#151518] text-[#FF7900] font-semibold' : 'hover:text-white'
+              }`}
+            >
+              Track Order / History
+            </button>
+            <button
+              onClick={() => handleMobileNav('/about')}
+              className={`px-3 py-2 rounded-xl text-left transition-colors ${
+                currentPath === '/about' ? 'bg-[#151518] text-[#FF7900] font-semibold' : 'hover:text-white'
+              }`}
+            >
+              About
+            </button>
+            <button
+              onClick={() => handleMobileNav('/contact')}
+              className={`px-3 py-2 rounded-xl text-left transition-colors ${
+                currentPath === '/contact' ? 'bg-[#151518] text-[#FF7900] font-semibold' : 'hover:text-white'
+              }`}
+            >
+              Contact
+            </button>
+          </nav>
+
+          <div className="pt-3 border-t border-[#2B2B30] flex flex-col gap-2">
+            <button
+              onClick={() => handleMobileNav('/admin/login')}
+              className="flex items-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-[#151518] border border-[#2B2B30] text-stone-200 hover:text-white hover:border-[#FF7900]"
+            >
+              <Shield className="w-4 h-4 text-[#FF7900]" />
+              <span>Admin Login</span>
+            </button>
+
+            <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-[#B8B8C0]">
+              <button
+                onClick={() => handleMobileNav('/rider/login')}
+                className="flex items-center gap-1.5 p-2 rounded-lg bg-[#151518] border border-[#2B2B30] hover:text-white"
+              >
+                <Bike className="w-3.5 h-3.5 text-[#FF7900]" />
+                <span>Rider Portal</span>
+              </button>
+              <button
+                onClick={() => handleMobileNav('/restaurant/login')}
+                className="flex items-center gap-1.5 p-2 rounded-lg bg-[#151518] border border-[#2B2B30] hover:text-white"
+              >
+                <Store className="w-3.5 h-3.5 text-[#FF7900]" />
+                <span>Restaurant Portal</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

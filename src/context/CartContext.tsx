@@ -22,12 +22,13 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'nove_cart_state';
+const CART_STORAGE_KEY = 'nova_hunger_cart_state';
+const LEGACY_CART_KEY = 'nove_cart_state';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      const saved = localStorage.getItem(CART_STORAGE_KEY) || localStorage.getItem(LEGACY_CART_KEY);
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.warn('Failed to load cart from storage:', e);
