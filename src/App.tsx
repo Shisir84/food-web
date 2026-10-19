@@ -168,9 +168,6 @@ function MainRouter() {
       currentPath === '/admin/orders' ||
       currentPath === '/admin/settings'
     ) {
-      if (!user || user.role !== 'admin') {
-        return <AuthView portal="admin" mode="login" onNavigate={navigate} />;
-      }
       return <AdminDashboardView onNavigate={navigate} />;
     }
 

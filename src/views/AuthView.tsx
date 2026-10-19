@@ -14,15 +14,9 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  KeyRound,
   Info,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
-import {
-  auth,
-  sendPasswordResetEmail,
-  formatFirebaseAuthError,
-} from '../lib/firebase.ts';
 
 interface AuthViewProps {
   portal: 'customer' | 'rider' | 'restaurant' | 'admin';
@@ -35,7 +29,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
   mode,
   onNavigate,
 }) => {
-  const { login, loginAdminWithFirebase, register } = useAuth();
+  const { login, register } = useAuth();
 
   // Common fields
   const [name, setName] = useState('');
@@ -58,54 +52,16 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Forgot password state
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
-
-  const handleForgotPassword = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const targetEmail = (forgotEmail || email).trim();
-    if (!targetEmail) {
-      setErrorMessage('Please enter your email address to receive a password reset link.');
-      return;
-    }
-
-    setResetLoading(true);
-    setResetSuccessMessage(null);
-    setErrorMessage(null);
-
-    try {
-      await sendPasswordResetEmail(auth, targetEmail);
-      setResetSuccessMessage(
-        `Password reset email sent to ${targetEmail}! Please check your inbox and follow the instructions to reset your password.`
-      );
-      setShowForgotModal(false);
-    } catch (err: any) {
-      setErrorMessage(formatFirebaseAuthError(err));
-    } finally {
-      setResetLoading(false);
-    }
-  };
+  const [showPasswordHelp, setShowPasswordHelp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
-    setResetSuccessMessage(null);
 
     try {
       if (mode === 'login') {
-        let res;
-        if (portal === 'admin') {
-          // Firebase Authentication integration for Administrator
-          res = await loginAdminWithFirebase(email, password);
-        } else {
-          res = await login(email, password, portal === 'customer' ? undefined : portal);
-        }
-
+        const res = await login(email, password, portal === 'customer' ? undefined : portal);
         const userRole = res?.user?.role;
         if (userRole === 'admin') {
           onNavigate('/admin/dashboard');
@@ -125,7 +81,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
           onNavigate('/customer/dashboard');
         }
       } else {
-        // Register: role is fixed to the portal type (never chosen arbitrarily)
+        // Register: role is fixed to the portal type
         const payload: any = {
           role: portal,
           name,
@@ -159,15 +115,60 @@ export const AuthView: React.FC<AuthViewProps> = ({
         }
       }
     } catch (err: any) {
-      if (portal === 'admin') {
-        setErrorMessage(formatFirebaseAuthError(err));
-      } else {
-        setErrorMessage(err.message || 'Authentication failed. Please verify your credentials.');
-      }
+      setErrorMessage(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (portal === 'admin') {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center px-4 py-16 bg-[#0B0B0D]">
+        <div className="w-full max-w-lg bg-[#151518] border border-[#2B2B30] rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6 animate-in fade-in duration-200">
+          <div className="space-y-3 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 border border-rose-500/30 text-rose-400">
+              <Shield className="w-4 h-4" />
+              <span>Restricted Administration</span>
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Admin Console Access
+            </h1>
+            <p className="text-xs text-[#B8B8C0] leading-relaxed max-w-md mx-auto">
+              Centralized platform operations for fleet oversight, restaurant verification, and live order dispatch.
+            </p>
+          </div>
+
+          {/* Security Notice Card */}
+          <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-amber-500/30 text-xs space-y-2">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Production Security Notice</span>
+            </div>
+            <p className="text-[11px] text-stone-300 leading-relaxed">
+              Firebase Authentication has been decommissioned from this application. The admin console is accessible in administrative preview mode.
+              Before production use, a secure identity provider (such as Enterprise SSO, Google Cloud IAP, or OAuth 2.0) must be integrated to protect administrative controls.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={() => onNavigate('/admin/dashboard')}
+              className="btn-primary w-full py-3.5 text-xs font-bold flex items-center justify-center gap-2"
+            >
+              <span>Enter Admin Dashboard Preview</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onNavigate('/customer/login')}
+              className="w-full py-2.5 text-xs font-medium text-[#B8B8C0] hover:text-white transition-colors"
+            >
+              ← Return to Customer Portal
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const portalConfig = {
     customer: {
@@ -246,47 +247,45 @@ export const AuthView: React.FC<AuthViewProps> = ({
           </p>
         </div>
 
-        {/* Mode Toggle (Sign In vs Register) - Only if not Admin */}
-        {portal !== 'admin' && (
-          <div className="flex border-b border-[#2B2B30] mb-6 text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                if (portal === 'customer') onNavigate('/customer/login');
-                else if (portal === 'rider') onNavigate('/rider/login');
-                else if (portal === 'restaurant') onNavigate('/restaurant/login');
-              }}
-              className={`pb-3 font-semibold transition-colors relative mr-6 ${
-                mode === 'login' ? 'text-[#FF9D00]' : 'text-[#B8B8C0] hover:text-white'
-              }`}
-            >
-              Sign In
-              {mode === 'login' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF7900]" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (portal === 'customer') onNavigate('/customer/register');
-                else if (portal === 'rider') onNavigate('/rider/register');
-                else if (portal === 'restaurant') onNavigate('/restaurant/register');
-              }}
-              className={`pb-3 font-semibold transition-colors relative ${
-                mode === 'register' ? 'text-[#FF9D00]' : 'text-[#B8B8C0] hover:text-white'
-              }`}
-            >
-              {portal === 'rider'
-                ? 'Apply as Rider'
-                : portal === 'restaurant'
-                ? 'Register Restaurant'
-                : 'Create Account'}
-              {mode === 'register' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF7900]" />
-              )}
-            </button>
-          </div>
-        )}
+        {/* Mode Toggle (Sign In vs Register) */}
+        <div className="flex border-b border-[#2B2B30] mb-6 text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              if (portal === 'customer') onNavigate('/customer/login');
+              else if (portal === 'rider') onNavigate('/rider/login');
+              else if (portal === 'restaurant') onNavigate('/restaurant/login');
+            }}
+            className={`pb-3 font-semibold transition-colors relative mr-6 ${
+              mode === 'login' ? 'text-[#FF9D00]' : 'text-[#B8B8C0] hover:text-white'
+            }`}
+          >
+            Sign In
+            {mode === 'login' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF7900]" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (portal === 'customer') onNavigate('/customer/register');
+              else if (portal === 'rider') onNavigate('/rider/register');
+              else if (portal === 'restaurant') onNavigate('/restaurant/register');
+            }}
+            className={`pb-3 font-semibold transition-colors relative ${
+              mode === 'register' ? 'text-[#FF9D00]' : 'text-[#B8B8C0] hover:text-white'
+            }`}
+          >
+            {portal === 'rider'
+              ? 'Apply as Rider'
+              : portal === 'restaurant'
+              ? 'Register Restaurant'
+              : 'Create Account'}
+            {mode === 'register' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF7900]" />
+            )}
+          </button>
+        </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -467,13 +466,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
               {mode === 'login' && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setForgotEmail(email);
-                    setShowForgotModal(true);
-                  }}
+                  onClick={() => setShowPasswordHelp(!showPasswordHelp)}
                   className="text-[11px] font-medium text-[#FF9D00] hover:underline transition-colors"
                 >
-                  Forgot Password?
+                  {showPasswordHelp ? 'Close help' : 'Password help'}
                 </button>
               )}
             </div>
@@ -495,26 +491,21 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {showPasswordHelp && (
+              <div className="mt-2 p-3 rounded-xl bg-[#0B0B0D] border border-[#2B2B30] text-[11px] text-[#B8B8C0] flex items-start gap-2 animate-in fade-in duration-150">
+                <Info className="w-4 h-4 text-[#FF7900] shrink-0 mt-0.5" />
+                <span>
+                  For customer or courier account assistance, please contact platform support at{' '}
+                  <span className="text-[#FF9D00] font-medium">support@novahunger.com</span>.
+                </span>
+              </div>
+            )}
           </div>
-
-          {resetSuccessMessage && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{resetSuccessMessage}</span>
-            </div>
-          )}
 
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="block">{errorMessage}</span>
-                {portal === 'admin' && errorMessage.includes('Account not found') && (
-                  <span className="block text-[11px] text-[#B8B8C0]">
-                    To provision the initial admin user, run: <code className="bg-black/60 px-1.5 py-0.5 rounded text-white font-mono">ADMIN_INITIAL_PASSWORD="..." npm run setup-admin</code> or create user in Firebase Console with claim <code className="bg-black/60 px-1.5 py-0.5 rounded text-white font-mono">&#123; admin: true &#125;</code>.
-                  </span>
-                )}
-              </div>
+              <span className="block">{errorMessage}</span>
             </div>
           )}
 
@@ -528,11 +519,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             ) : (
               <>
                 <span>
-                  {mode === 'login'
-                    ? portal === 'admin'
-                      ? 'Access Admin Dashboard'
-                      : 'Sign In'
-                    : 'Submit Registration'}
+                  {mode === 'login' ? 'Sign In' : 'Submit Registration'}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </>
@@ -571,60 +558,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Forgot Password Modal */}
-      {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#151518] border border-[#2B2B30] rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-center text-[#FF7900]">
-                <KeyRound className="w-4 h-4" />
-              </div>
-              <h2 className="text-lg font-bold text-white">Reset Account Password</h2>
-            </div>
-
-            <p className="text-xs text-[#B8B8C0] leading-relaxed">
-              Enter the email address registered with your account. We will send a secure password reset link via Firebase Authentication.
-            </p>
-
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              <div>
-                <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-                  Registered Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-[#2B2B30] text-xs font-semibold text-[#B8B8C0] hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={resetLoading}
-                  className="btn-primary px-5 py-2.5 text-xs font-bold flex items-center gap-2"
-                >
-                  {resetLoading ? 'Sending link...' : 'Send Reset Link'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

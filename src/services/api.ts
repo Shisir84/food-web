@@ -68,19 +68,7 @@ export const api = {
     return res;
   },
 
-  async verifyFirebaseAdmin(idToken: string) {
-    const res = await this.request<{
-      token: string;
-      user: User;
-      firebaseUid: string;
-      claims: { admin: boolean };
-    }>('/api/auth/firebase-verify-admin', {
-      method: 'POST',
-      body: JSON.stringify({ idToken }),
-    });
-    this.setToken(res.token);
-    return res;
-  },
+
 
   async register(payload: any) {
     const res = await this.request<{

@@ -27,14 +27,6 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { api } from '../services/api.ts';
 import { useTheme } from '../context/ThemeContext.tsx';
 import {
-  auth,
-  updatePassword,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  verifyBeforeUpdateEmail,
-  formatFirebaseAuthError,
-} from '../lib/firebase.ts';
-import {
   PlatformStats,
   RiderProfile,
   RestaurantProfile,
@@ -48,7 +40,7 @@ interface AdminDashboardViewProps {
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNavigate }) => {
-  const { user, firebaseUser, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, previewTheme, saveTheme, resetDefault, presets } = useTheme();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -58,20 +50,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
   const [themeSaveLoading, setThemeSaveLoading] = useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = useState<string | null>(null);
   const [themeErrorMsg, setThemeErrorMsg] = useState<string | null>(null);
-
-  // Security Tab State
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordSuccessMsg, setPasswordSuccessMsg] = useState<string | null>(null);
-  const [passwordErrorMsg, setPasswordErrorMsg] = useState<string | null>(null);
-
-  const [newEmail, setNewEmail] = useState('');
-  const [emailReauthPassword, setEmailReauthPassword] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [emailSuccessMsg, setEmailSuccessMsg] = useState<string | null>(null);
-  const [emailErrorMsg, setEmailErrorMsg] = useState<string | null>(null);
 
   // Riders state
   const [riders, setRiders] = useState<RiderProfile[]>([]);
@@ -112,6 +90,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
       setLogs(l);
     } catch (err: any) {
       console.error('Failed to load admin data:', err);
+      setActionError(err.message || 'Failed to load administrator records.');
     } finally {
       setIsLoading(false);
     }
@@ -191,89 +170,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordErrorMsg(null);
-    setPasswordSuccessMsg(null);
-
-    const activeUser = firebaseUser || auth.currentUser;
-    if (!activeUser || !activeUser.email) {
-      setPasswordErrorMsg('No active Firebase administrator session found. Please sign in via the Admin Console.');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setPasswordErrorMsg('New password must be at least 8 characters long.');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordErrorMsg('New password and confirmation password do not match.');
-      return;
-    }
-
-    setPasswordLoading(true);
-    try {
-      // 1. Re-authenticate with current credentials
-      const credential = EmailAuthProvider.credential(activeUser.email, currentPassword);
-      await reauthenticateWithCredential(activeUser, credential);
-
-      // 2. Update password
-      await updatePassword(activeUser, newPassword);
-
-      setPasswordSuccessMsg('Administrator password has been updated securely. Your new password is now active.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: any) {
-      setPasswordErrorMsg(formatFirebaseAuthError(err));
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
-  const handleRequestEmailChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmailErrorMsg(null);
-    setEmailSuccessMsg(null);
-
-    const activeUser = firebaseUser || auth.currentUser;
-    if (!activeUser || !activeUser.email) {
-      setEmailErrorMsg('No active Firebase administrator session found.');
-      return;
-    }
-
-    const trimmedEmail = newEmail.trim().toLowerCase();
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      setEmailErrorMsg('Please provide a valid new email address.');
-      return;
-    }
-
-    if (trimmedEmail === activeUser.email.toLowerCase()) {
-      setEmailErrorMsg('The new email address cannot be the same as the current email address.');
-      return;
-    }
-
-    setEmailLoading(true);
-    try {
-      // 1. Re-authenticate with current credentials
-      const credential = EmailAuthProvider.credential(activeUser.email, emailReauthPassword);
-      await reauthenticateWithCredential(activeUser, credential);
-
-      // 2. Request email verification before update
-      await verifyBeforeUpdateEmail(activeUser, trimmedEmail);
-
-      setEmailSuccessMsg(
-        `Verification email sent to ${trimmedEmail}! Firebase requires verifying the new email before completing the update.`
-      );
-      setNewEmail('');
-      setEmailReauthPassword('');
-    } catch (err: any) {
-      setEmailErrorMsg(formatFirebaseAuthError(err));
-    } finally {
-      setEmailLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -1226,10 +1122,22 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
               <div className="w-8 h-8 rounded-lg bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-center text-[#FF7900]">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <h2 className="font-display text-xl font-bold text-white">Administrator Account & Security</h2>
+              <h2 className="font-display text-xl font-bold text-white">Platform Security & Authentication Architecture</h2>
             </div>
             <p className="text-xs text-[#B8B8C0] max-w-3xl leading-relaxed">
-              Manage your Firebase Authentication credentials, update your administrator password, and request verified email changes. Sensitive credential modifications require cryptographic re-authentication.
+              Overview of administrative access governance, session management, and requirements for production authentication integration.
+            </p>
+          </div>
+
+          {/* Production Security Architecture Warning Card */}
+          <div className="p-6 rounded-3xl bg-amber-500/5 border border-amber-500/30 space-y-3">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <span>Production Authentication Requirement</span>
+            </div>
+            <p className="text-xs text-stone-300 leading-relaxed max-w-4xl">
+              Firebase Authentication has been decommissioned from this application. This administrative management console is currently operating in <strong>Preview / Evaluation Mode</strong>.
+              Before exposing this portal to the public internet or deploying to production, a dedicated production identity provider (e.g., Enterprise SSO, Google Cloud Identity-Aware Proxy, or OAuth 2.0) must be integrated to protect administrative controls.
             </p>
           </div>
 
@@ -1237,18 +1145,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
           <div className="p-6 rounded-3xl bg-[#151518] border border-[#2B2B30] space-y-4">
             <h3 className="font-display text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-[#FF7900]" />
-              Administrator Verification Status
+              Current Console Session Status
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#B8B8C0]">Primary Email</span>
                 <div className="text-xs font-semibold text-white truncate">
-                  {firebaseUser?.email || user?.email || 'admin@gmail.com'}
+                  {user?.role === 'admin' ? user.email : 'admin@novahunger.com'}
                 </div>
                 <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
                   <CheckCircle2 className="w-3 h-3" />
-                  {firebaseUser?.emailVerified ? 'Email Verified' : 'Verified Admin Role'}
+                  Verified Operator Role
                 </span>
               </div>
 
@@ -1258,198 +1166,58 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
                   <Shield className="w-3.5 h-3.5" />
                   Super Administrator
                 </div>
-                <span className="text-[10px] text-stone-400 font-mono">Custom Claim: &#123; admin: true &#125;</span>
+                <span className="text-[10px] text-stone-400 font-mono">Role: admin</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#B8B8C0]">Firebase UID</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#B8B8C0]">Environment</span>
                 <div className="text-xs font-mono text-stone-300 truncate">
-                  {firebaseUser?.uid || user?.id || 'fb_admin_session'}
+                  Development / Preview
                 </div>
-                <span className="text-[10px] text-stone-500">Google Identity Provider</span>
+                <span className="text-[10px] text-stone-500">Local Sandbox Session</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#B8B8C0]">Session Status</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#B8B8C0]">Session State</span>
                 <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Authenticated Active
+                  Active Console Session
                 </div>
-                <span className="text-[10px] text-stone-500">Protected Token Verified</span>
+                <span className="text-[10px] text-stone-500">Unrestricted Access</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Form 1: Change Administrator Password */}
-            <div className="p-6 rounded-3xl bg-[#151518] border border-[#2B2B30] space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-center text-[#FF7900]">
-                  <Lock className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Change Administrator Password</h3>
-                  <p className="text-[11px] text-[#B8B8C0]">Re-authenticates your current session and updates your password</p>
-                </div>
+          {/* Architecture Guidelines Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-3xl bg-[#151518] border border-[#2B2B30] space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-[#FF7900] flex items-center justify-center font-bold">
+                1
               </div>
-
-              {passwordSuccessMsg && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{passwordSuccessMsg}</span>
-                </div>
-              )}
-
-              {passwordErrorMsg && (
-                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{passwordErrorMsg}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div>
-                  <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-                    New Password (min 8 characters)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new strong password"
-                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat new password"
-                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={passwordLoading}
-                    className="btn-primary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2"
-                  >
-                    {passwordLoading ? (
-                      <span>Updating Credentials...</span>
-                    ) : (
-                      <>
-                        <KeyRound className="w-3.5 h-3.5" />
-                        <span>Update Admin Password</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+              <h4 className="text-sm font-bold text-white">Role-Based Access Control</h4>
+              <p className="text-xs text-[#B8B8C0] leading-relaxed">
+                Server-side endpoints validate user role boundaries. Only accounts with verified administrator rights can mutate rider approval statuses or alter kitchen visibility.
+              </p>
             </div>
 
-            {/* Form 2: Request Admin Email Change */}
-            <div className="p-6 rounded-3xl bg-[#151518] border border-[#2B2B30] space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-center text-[#FF7900]">
-                  <Mail className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Request Administrator Email Change</h3>
-                  <p className="text-[11px] text-[#B8B8C0]">Requires re-authentication and verification email confirmation</p>
-                </div>
+            <div className="p-6 rounded-3xl bg-[#151518] border border-[#2B2B30] space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-[#FF7900] flex items-center justify-center font-bold">
+                2
               </div>
+              <h4 className="text-sm font-bold text-white">Immutable Audit Logging</h4>
+              <p className="text-xs text-[#B8B8C0] leading-relaxed">
+                Critical platform decisions, approvals, and courier reviews are appended to the system audit stream to preserve institutional accountability and compliance trails.
+              </p>
+            </div>
 
-              {emailSuccessMsg && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{emailSuccessMsg}</span>
-                </div>
-              )}
-
-              {emailErrorMsg && (
-                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{emailErrorMsg}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleRequestEmailChange} className="space-y-4">
-                <div>
-                  <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-                    Current Password (for Re-authentication)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={emailReauthPassword}
-                    onChange={(e) => setEmailReauthPassword(e.target.value)}
-                    placeholder="Enter current password to authorize"
-                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold text-[#B8B8C0] block mb-1">
-                    New Administrator Email Address
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="newadmin@example.com"
-                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-[#FF7900] transition-colors"
-                  />
-                </div>
-
-                <div className="p-3 rounded-xl bg-[#0B0B0D] border border-[#2B2B30] text-[11px] text-[#B8B8C0] space-y-1">
-                  <span className="font-semibold text-white block">Verification Workflow Note:</span>
-                  <p>
-                    Firebase Authentication enforces dual-verification: a confirmation link will be delivered to the new email address. The address changes permanently once verified.
-                  </p>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={emailLoading}
-                    className="btn-primary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2"
-                  >
-                    {emailLoading ? (
-                      <span>Sending Verification...</span>
-                    ) : (
-                      <>
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>Send Email Change Verification</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+            <div className="p-6 rounded-3xl bg-[#151518] border border-[#2B2B30] space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-[#FF7900] flex items-center justify-center font-bold">
+                3
+              </div>
+              <h4 className="text-sm font-bold text-white">Server-Authoritative Pricing</h4>
+              <p className="text-xs text-[#B8B8C0] leading-relaxed">
+                All food item subtotals, minimum order rules, and coupon discounts are verified and recalculated server-side during checkout to eliminate client-side tampering.
+              </p>
             </div>
           </div>
 
@@ -1458,7 +1226,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
             <div>
               <span className="text-xs font-bold text-white block">Sign Out of Administrator Session</span>
               <span className="text-[11px] text-[#B8B8C0]">
-                Terminates both your Firebase Authentication client session and active server token.
+                Clears current platform session tokens and returns to the login portal.
               </span>
             </div>
 
