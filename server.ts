@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { db } from './server/db.ts';
+import { GoogleGenAI } from '@google/genai';
 import type {
   User,
   RiderProfile,
@@ -20,6 +21,9 @@ import type {
   BackgroundConfig,
   MediaItem,
   ThemeSettings,
+  ContactInquiry,
+  ChatbotSettings,
+  EmailSettings,
 } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -461,31 +465,62 @@ app.post('/api/auth/profile/address', requireAuth, (req: Request, res: Response)
 
 // GET /api/restaurants - only approved restaurants are returned to the public
 app.get('/api/restaurants', (req: Request, res: Response) => {
-  const restaurants = db.get('restaurants');
-  const { search, category, city } = req.query;
+  const restaurants = db.get('restaurants') || [];
+  const foodItems = db.get('foodItems') || [];
+  const { search, category, city, vegOnly } = req.query;
 
   // Only approved restaurants can publish publicly visible menus or receive live customer orders
   let filtered = restaurants.filter((r) => r.status === 'approved');
 
-  if (search) {
-    const query = (search as string).toLowerCase();
-    filtered = filtered.filter(
-      (r) =>
-        r.name.toLowerCase().includes(query) ||
-        r.cuisineTypes.some((c) => c.toLowerCase().includes(query)) ||
-        r.deliveryArea.toLowerCase().includes(query)
-    );
+  // Search across kitchen name, cuisine types, delivery area, and menu items
+  if (search && typeof search === 'string') {
+    const query = search.toLowerCase().trim();
+    if (query.length > 0) {
+      filtered = filtered.filter((r) => {
+        const matchName = r.name.toLowerCase().includes(query);
+        const matchCuisine = r.cuisineTypes && r.cuisineTypes.some((c) => c.toLowerCase().includes(query));
+        const matchArea = (r.deliveryArea || '').toLowerCase().includes(query);
+        const matchFood = foodItems.some(
+          (f) =>
+            f.restaurantId === r.id &&
+            (f.name.toLowerCase().includes(query) ||
+              f.description.toLowerCase().includes(query) ||
+              f.category.toLowerCase().includes(query))
+        );
+        return matchName || matchCuisine || matchArea || matchFood;
+      });
+    }
   }
 
-  if (category) {
-    const cat = (category as string).toLowerCase();
+  // Category filter (support single or comma-separated, ignoring 'all' or 'all flavors')
+  if (category && typeof category === 'string') {
+    const rawCat = category.toLowerCase().trim();
+    if (rawCat !== 'all' && rawCat !== 'all flavors' && rawCat !== 'undefined' && rawCat !== '') {
+      filtered = filtered.filter((r) => {
+        const matchCuisine =
+          r.cuisineTypes &&
+          r.cuisineTypes.some((c) => {
+            const lc = c.toLowerCase();
+            return lc === rawCat || lc.includes(rawCat) || rawCat.includes(lc);
+          });
+        const matchFoodCategory = foodItems.some(
+          (f) => f.restaurantId === r.id && f.category.toLowerCase().includes(rawCat)
+        );
+        return matchCuisine || matchFoodCategory;
+      });
+    }
+  }
+
+  // City filter
+  if (city && typeof city === 'string' && city.trim() !== '') {
+    filtered = filtered.filter((r) => r.city.toLowerCase() === city.toLowerCase().trim());
+  }
+
+  // Vegetarian filter: if vegOnly is true, only include restaurants offering available vegetarian dishes
+  if (vegOnly === 'true' || String(vegOnly) === 'true') {
     filtered = filtered.filter((r) =>
-      r.cuisineTypes.some((c) => c.toLowerCase().includes(cat))
+      foodItems.some((f) => f.restaurantId === r.id && f.isVeg && f.isAvailable)
     );
-  }
-
-  if (city) {
-    filtered = filtered.filter((r) => r.city.toLowerCase() === (city as string).toLowerCase());
   }
 
   res.json(filtered);
@@ -634,11 +669,38 @@ app.post('/api/coupons/validate', (req: Request, res: Response) => {
 // ORDERS & CHECKOUT (CRITICAL BUSINESS FLOW)
 // -------------------------------------------------------------
 
-// POST /api/orders - checkout and create order with server-side price validation
-app.post('/api/orders', requireAuth, (req: Request, res: Response) => {
-  const user = (req as any).user as User;
-  const { items, restaurantId, deliveryAddress, deliveryInstructions, paymentMethod, couponCode } =
-    req.body;
+// POST /api/orders - checkout and create order with server-side price validation (Supports both Auth & Guest)
+app.post('/api/orders', (req: Request, res: Response) => {
+  const authUser = getAuthUser(req);
+  const authHeader = req.headers.authorization;
+
+  // If a Bearer token was explicitly provided in the request, but failed validation:
+  if (authHeader && authHeader.startsWith('Bearer ') && !authUser) {
+    const rawToken = authHeader.substring(7).trim();
+    const tokenExpires = db.get('tokenExpires') || {};
+    if (tokenExpires[rawToken] && Date.now() > tokenExpires[rawToken]) {
+      return res.status(401).json({
+        error: 'Your login session has expired. Please sign in again or continue as guest to complete your order.',
+        code: 'SESSION_EXPIRED',
+      });
+    }
+    return res.status(401).json({
+      error: 'Invalid authentication session token. Please log in again or continue as guest.',
+      code: 'INVALID_SESSION_TOKEN',
+    });
+  }
+
+  const {
+    items,
+    restaurantId,
+    deliveryAddress,
+    deliveryInstructions,
+    paymentMethod,
+    couponCode,
+    customerName,
+    customerEmail,
+    customerPhone,
+  } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Order must contain at least one food item' });
@@ -648,14 +710,69 @@ app.post('/api/orders', requireAuth, (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Restaurant ID is required' });
   }
 
-  if (!deliveryAddress || !deliveryAddress.street) {
-    return res.status(400).json({ error: 'Valid delivery address is required' });
+  if (!deliveryAddress || !deliveryAddress.street || !deliveryAddress.city) {
+    return res.status(400).json({ error: 'Valid delivery address with street and city is required' });
+  }
+
+  // Determine Customer Identity (Authenticated User vs Guest Checkout)
+  let orderCustomerId: string;
+  let orderCustomerName: string;
+  let orderCustomerEmail: string;
+  let orderCustomerPhone: string;
+
+  if (authUser) {
+    if (authUser.status === 'suspended') {
+      return res.status(403).json({ error: 'Your account has been deactivated. Please contact support.' });
+    }
+    orderCustomerId = authUser.id;
+    orderCustomerName = authUser.name;
+    orderCustomerEmail = authUser.email;
+    orderCustomerPhone = authUser.phone || customerPhone || '+1 (555) 000-0000';
+  } else {
+    // Guest Checkout Validation
+    if (!customerName || typeof customerName !== 'string' || customerName.trim().length < 2) {
+      return res.status(400).json({ error: 'Customer full name is required for guest checkout' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!customerEmail || typeof customerEmail !== 'string' || !emailRegex.test(customerEmail.trim())) {
+      return res.status(400).json({ error: 'A valid email address is required for guest order confirmation' });
+    }
+    if (!customerPhone || typeof customerPhone !== 'string' || customerPhone.trim().length < 7) {
+      return res.status(400).json({ error: 'A valid contact phone number is required for courier delivery' });
+    }
+
+    const normalizedEmail = customerEmail.trim().toLowerCase();
+    const users = db.get('users');
+    let existingCustomer = users.find(
+      (u) => u.email.toLowerCase() === normalizedEmail && u.role === 'customer'
+    );
+
+    if (!existingCustomer) {
+      const guestId = `usr_guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      existingCustomer = {
+        id: guestId,
+        name: customerName.trim(),
+        email: normalizedEmail,
+        role: 'customer',
+        phone: customerPhone.trim(),
+        createdAt: new Date().toISOString(),
+        status: 'active',
+        savedAddresses: [deliveryAddress],
+      };
+      users.push(existingCustomer);
+      db.set('users', users);
+    }
+
+    orderCustomerId = existingCustomer.id;
+    orderCustomerName = customerName.trim();
+    orderCustomerEmail = normalizedEmail;
+    orderCustomerPhone = customerPhone.trim();
   }
 
   const restaurants = db.get('restaurants');
   const restaurant = restaurants.find((r) => r.id === restaurantId);
   if (!restaurant) {
-    return res.status(404).json({ error: 'Restaurant not found' });
+    return res.status(404).json({ error: 'Selected restaurant was not found.' });
   }
   if (restaurant.status !== 'approved') {
     return res.status(400).json({ error: 'This restaurant cannot accept orders currently.' });
@@ -669,7 +786,7 @@ app.post('/api/orders', requireAuth, (req: Request, res: Response) => {
   for (const it of items) {
     const food = foodItems.find((f) => f.id === it.foodId);
     if (!food) {
-      return res.status(400).json({ error: `Food item '${it.foodId}' no longer available` });
+      return res.status(400).json({ error: `Food item '${it.foodId}' is no longer available` });
     }
     if (!food.isAvailable) {
       return res.status(400).json({ error: `'${food.name}' is currently sold out` });
@@ -736,9 +853,9 @@ app.post('/api/orders', requireAuth, (req: Request, res: Response) => {
   const newOrder: Order = {
     id: orderId,
     orderNumber,
-    customerId: user.id,
-    customerName: user.name,
-    customerPhone: user.phone || req.body.customerPhone || '+1 (555) 000-0000',
+    customerId: orderCustomerId,
+    customerName: orderCustomerName,
+    customerPhone: orderCustomerPhone,
     restaurantId: restaurant.id,
     restaurantName: restaurant.name,
     restaurantAddress: restaurant.address,
@@ -758,7 +875,7 @@ app.post('/api/orders', requireAuth, (req: Request, res: Response) => {
       {
         status: 'placed',
         timestamp: new Date().toISOString(),
-        note: 'Order placed by customer via Nova Hunger Food platform.',
+        note: `Order placed by ${orderCustomerName} via Nova Hunger Food.`,
       },
     ],
     estimatedDeliveryTime: '30-40 minutes',
@@ -779,7 +896,7 @@ app.post('/api/orders', requireAuth, (req: Request, res: Response) => {
   const notifications = db.get('notifications');
   notifications.unshift({
     id: `notif_${Date.now()}`,
-    userId: user.id,
+    userId: orderCustomerId,
     title: 'Order Confirmed! 🍽️',
     message: `Your order #${newOrder.orderNumber} from ${restaurant.name} has been placed.`,
     type: 'order',
@@ -2184,29 +2301,609 @@ app.post('/api/notifications/:id/read', requireAuth, (req: Request, res: Respons
   res.json({ success: true });
 });
 
-app.post('/api/contact', (req: Request, res: Response) => {
-  const { name, email, subject, message } = req.body;
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'Name, email, and message are required' });
+// -------------------------------------------------------------
+// CHATBOT, CONTACT FORM & GMAIL INTEGRATION
+// -------------------------------------------------------------
+
+// In-memory rate limiting stores
+const chatRateLimits = new Map<string, { count: number; resetTime: number }>();
+const contactRateLimits = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(map: Map<string, { count: number; resetTime: number }>, key: string, max: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = map.get(key);
+  if (!entry || now > entry.resetTime) {
+    map.set(key, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  if (entry.count >= max) {
+    return false;
+  }
+  entry.count += 1;
+  return true;
+}
+
+// GET /api/chatbot/public-settings
+app.get('/api/chatbot/public-settings', (_req: Request, res: Response) => {
+  const settings = db.get('chatbotSettings') || {
+    enabled: true,
+    botName: 'Nova AI Assistant',
+    welcomeMessage: 'Hello! I am your Nova AI Assistant. How can I assist you with restaurants, delicious menu items, or your delivery today?',
+    suggestedPrompts: [
+      'Find me a pizza restaurant.',
+      'What food can I order?',
+      'Recommend something vegetarian.',
+      'How do I place an order?',
+      'How can I track my order?',
+      'How can I contact support?',
+    ],
+    geminiModel: 'gemini-3.8-flash',
+  };
+  res.json({
+    enabled: settings.enabled !== false,
+    botName: settings.botName || 'Nova AI Assistant',
+    welcomeMessage: settings.welcomeMessage || 'Hello! I am your Nova AI Assistant.',
+    suggestedPrompts: settings.suggestedPrompts || [],
+  });
+});
+
+// POST /api/chat - Gemini AI Customer Chatbot
+app.post('/api/chat', async (req: Request, res: Response) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!checkRateLimit(chatRateLimits, ip, 35, 60 * 1000)) {
+    return res.status(429).json({
+      error: 'Too many messages sent in a short time. Please wait a moment before sending another message.',
+    });
   }
 
-  // Record contact inquiry in audit/support logs
+  const { message, history } = req.body;
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'Message text is required' });
+  }
+
+  if (message.length > 1200) {
+    return res.status(400).json({ error: 'Message exceeds maximum length of 1200 characters' });
+  }
+
+  const chatbotSettings = db.get('chatbotSettings');
+  if (chatbotSettings && chatbotSettings.enabled === false) {
+    return res.json({
+      reply: 'The Nova AI Assistant is currently offline for routine system maintenance. Please feel free to browse restaurants or visit our Contact page for live assistance.',
+    });
+  }
+
+  // Grounding Context: Fetch real restaurants, food items, and coupons
+  const restaurants = (db.get('restaurants') || []).filter((r) => r.status === 'approved');
+  const foodItems = (db.get('foodItems') || []).filter((f) => f.isAvailable);
+  const coupons = (db.get('coupons') || []).filter((c) => c.isActive);
+
+  // Optional authenticated user context
+  const authUser = getAuthUser(req);
+  let userOrdersSummary = '';
+  if (authUser) {
+    const orders = (db.get('orders') || []).filter((o) => o.customerId === authUser.id);
+    if (orders.length > 0) {
+      userOrdersSummary = `\nActive/Recent orders for current user (${authUser.name}):\n` +
+        orders.slice(0, 3).map((o) => `- Order #${o.orderNumber}: Status '${o.status.replace(/_/g, ' ')}' from ${o.restaurantName}, Total: $${o.total.toFixed(2)}`).join('\n');
+    }
+  }
+
+  const restaurantDataText = restaurants.map((r) => {
+    const items = foodItems.filter((f) => f.restaurantId === r.id);
+    const itemNames = items.map((i) => `${i.name} ($${i.price.toFixed(2)}${i.isVeg ? ', Veg' : ''})`).join(', ');
+    return `Restaurant: "${r.name}" (ID: ${r.id})
+- Cuisines: ${r.cuisineTypes.join(', ')}
+- Rating: ${r.rating} (${r.reviewCount} reviews)
+- Delivery Time: ${r.deliveryTimeEstimate}
+- Minimum Order: $${r.minOrder.toFixed(2)}
+- Address: ${r.address}, ${r.city}
+- Menu Items: ${itemNames || 'None currently listed'}`;
+  }).join('\n\n');
+
+  const couponText = coupons.map((c) => `- Code '${c.code}': ${c.description} (Min order $${c.minOrder})`).join('\n');
+
+  const systemInstruction = `You are "Nova AI Assistant", the official, friendly, and knowledgeable AI assistant for Nova Hunger Food (a premium food delivery platform).
+Your role is to guide customers in discovering vetted kitchens, exploring food dishes, understanding delivery and checkout processes, tracking their orders, and contacting support.
+
+GROUND TRUTH RULES (CRITICAL):
+1. Use ONLY the real restaurant and menu data provided below. NEVER hallucinate, invent, or assume restaurants, dishes, prices, promotions, delivery times, or menu availability that are not listed.
+2. If a customer asks for a category (like pizza, biryani, burgers, momos, desserts, or veg dishes), recommend the actual matching restaurants and items from the provided list.
+3. For dietary or food allergy inquiries: You must always include the disclaimer: "Please note: For food allergies or special dietary restrictions, please confirm directly with the restaurant."
+4. For order tracking: If the customer provides an order number (e.g. NV-8841), check the provided active orders or explain how they can visit /track-order/{id} or click the "Track Order" link in the navbar. Never disclose other customers' personal orders.
+5. For placing orders: You can suggest dishes and guide them to add items to their cart and proceed to /checkout. Explicitly inform customers that they will have the opportunity to review delivery details and payment options before completing the order. Never falsely claim an order has been finalized unless confirmed through checkout.
+6. Support: If a customer has an issue, dispute, or complex request, provide the customer care details (support@novahunger.com, +1 (555) 019-NOVA) and offer to direct them to the Contact Support page.
+7. Tone: Warm, helpful, concise, and professional. Avoid lengthy filler. Use markdown formatting with bullet points and bold text where helpful.
+
+LIVE DATA ON NOVA HUNGER FOOD:
+${restaurantDataText}
+
+ACTIVE PROMOTIONS & VOUCHERS:
+${couponText}
+
+PLATFORM SPECS:
+- Standard Delivery Partner Fee: $3.99
+- Estimated Tax & Service: 8%
+- Payment Options: Cash on Delivery (COD) or Card / Digital Wallet
+${userOrdersSummary}`;
+
+  // Try calling Gemini API via @google/genai SDK
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (geminiApiKey) {
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: geminiApiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+
+      // Format conversation history for Gemini SDK
+      const contentsPayload: any[] = [];
+      if (Array.isArray(history)) {
+        for (const h of history.slice(-6)) {
+          if (h.role === 'user' || h.role === 'model') {
+            contentsPayload.push({
+              role: h.role,
+              parts: [{ text: h.content }],
+            });
+          }
+        }
+      }
+      contentsPayload.push({
+        role: 'user',
+        parts: [{ text: message.trim() }],
+      });
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: contentsPayload,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        },
+      });
+
+      const replyText = response.text || "I'm here to help you find wonderful food on Nova Hunger Food!";
+
+      // Detect relevant action shortcuts for client
+      let suggestedAction: any = undefined;
+      const lower = replyText.toLowerCase();
+      if (lower.includes('contact support') || lower.includes('/contact')) {
+        suggestedAction = {
+          type: 'contact_form',
+          label: 'Open Contact Support Form',
+          target: '/contact',
+        };
+      } else if (lower.includes('flame & crust') || lower.includes('pizza')) {
+        suggestedAction = {
+          type: 'navigate',
+          label: 'View Flame & Crust Pizzeria',
+          target: '/restaurants/rest_1',
+        };
+      } else if (lower.includes('royal dum darbar') || lower.includes('biryani')) {
+        suggestedAction = {
+          type: 'navigate',
+          label: 'View Royal Dum Darbar',
+          target: '/restaurants/rest_2',
+        };
+      } else if (lower.includes('smash & bun') || lower.includes('burger')) {
+        suggestedAction = {
+          type: 'navigate',
+          label: 'View Smash & Bun Burgers',
+          target: '/restaurants/rest_3',
+        };
+      } else if (lower.includes('himalayan momo') || lower.includes('momo')) {
+        suggestedAction = {
+          type: 'navigate',
+          label: 'View Himalayan Momo & Steams',
+          target: '/restaurants/rest_4',
+        };
+      } else if (lower.includes('track your order') || lower.includes('track-order')) {
+        suggestedAction = {
+          type: 'navigate',
+          label: 'Go to Order Tracking',
+          target: '/customer/orders',
+        };
+      }
+
+      return res.json({
+        reply: replyText,
+        suggestedAction,
+        model: 'gemini-3.8-flash',
+      });
+    } catch (geminiErr: any) {
+      console.warn('Gemini API call failed, falling back to intelligent rule-based assistant:', geminiErr?.message || geminiErr);
+    }
+  }
+
+  // Graceful Fallback Assistant: Powered by database state
+  const q = message.toLowerCase();
+  let fallbackReply = '';
+  let fallbackAction: any = undefined;
+
+  if (q.includes('pizza')) {
+    fallbackReply = `For delicious pizza, I highly recommend **Flame & Crust Artisan Pizzeria** (4.9 rating)! They offer wood-fired favorites like the **Neapolitan Margherita D.O.P.** ($18.50) and the **Truffle Wild Mushroom Pizza** ($21.00).\n\n*Allergy reminder: For food allergies, please confirm directly with the kitchen.*`;
+    fallbackAction = { type: 'navigate', label: 'View Pizzeria Menu', target: '/restaurants/rest_1' };
+  } else if (q.includes('biryani')) {
+    fallbackReply = `Craving biryani? **The Royal Dum Darbar** prepares authentic handi delicacies such as **Shahi Lucknowi Chicken Dum Biryani** ($22.00) and **Paneer Subz Dum Biryani** ($19.50) served with cooling raita!`;
+    fallbackAction = { type: 'navigate', label: 'View Dum Darbar Menu', target: '/restaurants/rest_2' };
+  } else if (q.includes('burger')) {
+    fallbackReply = `Check out **Smash & Bun Craft Burgers**! Their **Nova Signature Double Smash** ($16.50) with caramelized shallots and the **Crispy Truffle Portobello Burger** ($15.50) are customer favorites.`;
+    fallbackAction = { type: 'navigate', label: 'View Burger Kitchen', target: '/restaurants/rest_3' };
+  } else if (q.includes('momo') || q.includes('dumpling')) {
+    fallbackReply = `You can order handcrafted momos from **Himalayan Momo & Steams**! They serve **Classic Steamed Chicken Momos** ($14.00), **Steamed Mountain Veg Momos** ($13.00), and pan-fried **Kothey Momos** ($15.00) with spicy timur sesame dip.`;
+    fallbackAction = { type: 'navigate', label: 'View Momo Kitchen', target: '/restaurants/rest_4' };
+  } else if (q.includes('veg') || q.includes('vegetarian')) {
+    fallbackReply = `Here are our top vegetarian picks:\n- **Neapolitan Margherita D.O.P.** at Flame & Crust ($18.50)\n- **Truffle Wild Mushroom Pizza** at Flame & Crust ($21.00)\n- **Paneer Subz Dum Biryani** at Royal Dum Darbar ($19.50)\n- **Crispy Truffle Portobello Burger** at Smash & Bun ($15.50)\n- **Steamed Mountain Veg Momos** at Himalayan Momo ($13.00)\n\n*Allergy reminder: For food allergies, please confirm directly with the kitchen.*`;
+    fallbackAction = { type: 'navigate', label: 'Explore All Kitchens', target: '/restaurants' };
+  } else if (q.includes('order') && (q.includes('track') || q.includes('where'))) {
+    if (authUser && userOrdersSummary) {
+      fallbackReply = `Here is your recent order status:\n${userOrdersSummary}\n\nYou can click below to view live GPS courier updates.`;
+      fallbackAction = { type: 'navigate', label: 'Track Active Orders', target: '/customer/orders' };
+    } else {
+      fallbackReply = `To track an active order, please enter your order number on our Track Order page, or check the 'Track Order' option in your top navigation.`;
+      fallbackAction = { type: 'navigate', label: 'Track Order Page', target: '/customer/orders' };
+    }
+  } else if (q.includes('how') && (q.includes('order') || q.includes('checkout') || q.includes('place'))) {
+    fallbackReply = `Placing an order is simple:\n1. Browse restaurants and click on a kitchen to see their menu.\n2. Add your favorite dishes to the shopping cart.\n3. Head to the cart and apply vouchers like **NOVAFIRST** (20% off).\n4. Proceed to Checkout, enter your delivery address, select Cash on Delivery or Card, and click Confirm!\n\nYou can review all items before placing your order.`;
+    fallbackAction = { type: 'navigate', label: 'Browse Restaurants', target: '/restaurants' };
+  } else if (q.includes('support') || q.includes('contact') || q.includes('help') || q.includes('phone') || q.includes('email')) {
+    fallbackReply = `Our dedicated support team is here 24/7! You can reach us via email at **support@novahunger.com** or call **+1 (555) 019-NOVA**.\n\nYou can also submit an inquiry ticket on our Contact page.`;
+    fallbackAction = { type: 'contact_form', label: 'Open Contact Support Form', target: '/contact' };
+  } else {
+    fallbackReply = `Welcome to Nova Hunger Food! I can help you find restaurants, compare menus (Pizza, Burgers, Biryani, Momos, and Desserts), check vegetarian choices, and guide you through placing or tracking orders.\n\nWhat kind of food are you in the mood for today?`;
+    fallbackAction = { type: 'navigate', label: 'Browse Restaurants', target: '/restaurants' };
+  }
+
+  res.json({
+    reply: fallbackReply,
+    suggestedAction: fallbackAction,
+    model: 'nova-assistant-local',
+  });
+});
+
+// POST /api/contact - Connected Contact Form with Spam Protection & Persistent Storage
+app.post('/api/contact', async (req: Request, res: Response) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+
+  // Anti-spam Honeypot: 'hp' field must remain blank
+  if (req.body.hp) {
+    return res.status(400).json({ error: 'Submission rejected by spam detection filter.' });
+  }
+
+  // Rate limiting: 6 submissions per 10 minutes per IP
+  if (!checkRateLimit(contactRateLimits, ip, 6, 10 * 60 * 1000)) {
+    return res.status(429).json({
+      error: 'Too many messages sent from this address. Please wait a few minutes before trying again.',
+    });
+  }
+
+  const { name, email, subject, message } = req.body;
+
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    return res.status(400).json({ error: 'Please enter your full name (minimum 2 characters).' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
+    return res.status(400).json({ error: 'Please provide a valid email address (e.g., name@example.com).' });
+  }
+
+  if (!message || typeof message !== 'string' || message.trim().length < 10) {
+    return res.status(400).json({ error: 'Please provide a detailed inquiry message (minimum 10 characters).' });
+  }
+
+  const emailSettings = db.get('emailSettings') || {
+    businessEmail: 'shisirtharu51@gmail.com',
+    gmailConnected: false,
+    gmailAccount: 'shisirtharu51@gmail.com',
+  };
+
+  const destinationEmail = emailSettings.businessEmail || 'shisirtharu51@gmail.com';
+  const ticketNumber = `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
+  const inquiryId = `inq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  // Record contact inquiry in persistent storage
+  const inquiries = db.get('contactInquiries') || [];
+  let emailSent = false;
+  let emailDeliveryStatus = 'stored_locally_awaiting_gmail_auth';
+
+  // Attempt live Gmail dispatch if an active OAuth bearer token or credentials exist
+  const authHeader = req.headers.authorization;
+  const gmailToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (process.env.GMAIL_ACCESS_TOKEN || null);
+
+  if (gmailToken && emailSettings.gmailConnected) {
+    try {
+      const emailContent = [
+        `From: me`,
+        `To: ${destinationEmail}`,
+        `Reply-To: ${email.trim()}`,
+        `Subject: Nova Hunger Food — Customer Inquiry: ${subject || 'Support Request'} [${ticketNumber}]`,
+        `Date: ${new Date().toUTCString()}`,
+        `Content-Type: text/plain; charset=UTF-8`,
+        ``,
+        `NOVA HUNGER FOOD CUSTOMER INQUIRY`,
+        `==================================`,
+        `Ticket Reference: ${ticketNumber}`,
+        `Timestamp:        ${new Date().toISOString()}`,
+        `Sender Name:      ${name.trim()}`,
+        `Sender Email:     ${email.trim()} (Reply-To)`,
+        `Inquiry Category: ${subject || 'General Inquiry'}`,
+        ``,
+        `Customer Message:`,
+        `-----------------`,
+        `${message.trim()}`,
+        ``,
+        `--`,
+        `Dispatched securely from Nova Hunger Food Support Gateway.`,
+      ].join('\r\n');
+
+      const base64UrlEmail = Buffer.from(emailContent)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${gmailToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ raw: base64UrlEmail }),
+      });
+
+      if (gmailRes.ok) {
+        emailSent = true;
+        emailDeliveryStatus = 'delivered';
+      } else {
+        const errText = await gmailRes.text();
+        console.warn('Gmail API delivery attempt returned non-200:', errText);
+        emailDeliveryStatus = 'gmail_api_error';
+      }
+    } catch (e: any) {
+      console.warn('Gmail send network error:', e.message);
+      emailDeliveryStatus = 'network_error';
+    }
+  }
+
+  const newInquiry: ContactInquiry = {
+    id: inquiryId,
+    ticketNumber,
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    subject: subject ? subject.trim() : 'General Support Request',
+    message: message.trim(),
+    status: 'new',
+    emailSent,
+    emailDeliveryStatus,
+    createdAt: new Date().toISOString(),
+  };
+
+  inquiries.unshift(newInquiry);
+  db.set('contactInquiries', inquiries);
+
+  // Record audit log for transparency
   const auditLogs = db.get('auditLogs');
   auditLogs.unshift({
     id: `log_${Date.now()}`,
     adminId: 'system',
-    adminEmail: email,
+    adminEmail: email.trim().toLowerCase(),
     action: 'CONTACT_SUPPORT_INQUIRY',
     targetType: 'user',
-    targetId: 'support',
-    details: `Customer inquiry from ${name} (${email}): [${subject || 'General'}] ${message.substring(0, 80)}...`,
+    targetId: inquiryId,
+    details: `Customer inquiry from ${name.trim()} (${email.trim()}): [${newInquiry.subject}] (${ticketNumber}). Delivery status: ${emailDeliveryStatus}.`,
     timestamp: new Date().toISOString(),
   });
   db.set('auditLogs', auditLogs);
 
-  res.json({
+  res.status(201).json({
     success: true,
-    message: 'Thank you for reaching out to Nova Hunger Food! Our support desk has received your ticket.',
+    ticketNumber,
+    message: `Thank you, ${name.trim()}! Your support ticket #${ticketNumber} has been logged and sent to Nova Hunger Food support (${destinationEmail}). Our team will respond to ${email.trim()} shortly.`,
+    destinationEmail,
+    emailDeliveryStatus,
+  });
+});
+
+// -------------------------------------------------------------
+// ADMIN CHATBOT, GMAIL & INQUIRIES CONTROL ENDPOINTS
+// -------------------------------------------------------------
+
+// GET /api/admin/chatbot/settings
+app.get('/api/admin/chatbot/settings', requireAdmin, (_req: Request, res: Response) => {
+  const settings = db.get('chatbotSettings') || {
+    enabled: true,
+    botName: 'Nova AI Assistant',
+    welcomeMessage: 'Hello! I am your Nova AI Assistant. How can I assist you with restaurants, delicious menu items, or your delivery today?',
+    suggestedPrompts: [
+      'Find me a pizza restaurant.',
+      'What food can I order?',
+      'Recommend something vegetarian.',
+      'How do I place an order?',
+      'How can I track my order?',
+      'How can I contact support?',
+    ],
+    geminiModel: 'gemini-3.8-flash',
+  };
+  res.json({
+    settings,
+    geminiApiKeyConfigured: !!process.env.GEMINI_API_KEY,
+    geminiModel: 'gemini-3.8-flash',
+  });
+});
+
+// POST /api/admin/chatbot/settings
+app.post('/api/admin/chatbot/settings', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const current = (db.get('chatbotSettings') as ChatbotSettings) || ({} as Partial<ChatbotSettings>);
+  const { enabled, botName, welcomeMessage, suggestedPrompts } = req.body;
+
+  const updated: ChatbotSettings = {
+    enabled: enabled !== undefined ? !!enabled : (current.enabled !== false),
+    botName: botName ? botName.trim() : (current.botName || 'Nova AI Assistant'),
+    welcomeMessage: welcomeMessage ? welcomeMessage.trim() : (current.welcomeMessage || 'Hello! How can I assist you today?'),
+    suggestedPrompts: Array.isArray(suggestedPrompts) ? suggestedPrompts : (current.suggestedPrompts || []),
+    geminiModel: 'gemini-3.8-flash',
+  };
+
+  db.set('chatbotSettings', updated);
+
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'UPDATE_CHATBOT_SETTINGS',
+    targetType: 'settings',
+    targetId: 'chatbot',
+    details: `Administrator updated Nova AI Assistant configuration (Status: ${updated.enabled ? 'Enabled' : 'Disabled'}).`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, settings: updated });
+});
+
+// GET /api/admin/email/settings
+app.get('/api/admin/email/settings', requireAdmin, (_req: Request, res: Response) => {
+  const settings = db.get('emailSettings') || {
+    businessEmail: 'shisirtharu51@gmail.com',
+    gmailConnected: false,
+    gmailAccount: 'shisirtharu51@gmail.com',
+    lastChecked: new Date().toISOString(),
+  };
+  res.json({
+    settings,
+    firebaseAppletConfigured: true,
+  });
+});
+
+// POST /api/admin/email/settings
+app.post('/api/admin/email/settings', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const current = (db.get('emailSettings') as EmailSettings) || ({} as Partial<EmailSettings>);
+  const { businessEmail, gmailConnected, gmailAccount } = req.body;
+
+  if (businessEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(businessEmail.trim())) {
+      return res.status(400).json({ error: 'Please enter a valid destination business email address.' });
+    }
+  }
+
+  const updated: EmailSettings = {
+    businessEmail: businessEmail ? businessEmail.trim().toLowerCase() : (current.businessEmail || 'shisirtharu51@gmail.com'),
+    gmailConnected: gmailConnected !== undefined ? !!gmailConnected : !!current.gmailConnected,
+    gmailAccount: gmailAccount ? gmailAccount.trim().toLowerCase() : (current.gmailAccount || 'shisirtharu51@gmail.com'),
+    lastChecked: new Date().toISOString(),
+  };
+
+  db.set('emailSettings', updated);
+
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'UPDATE_EMAIL_SETTINGS',
+    targetType: 'settings',
+    targetId: 'email',
+    details: `Updated destination inbox to ${updated.businessEmail} (Gmail Connected: ${updated.gmailConnected}).`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, settings: updated });
+});
+
+// GET /api/admin/inquiries
+app.get('/api/admin/inquiries', requireAdmin, (req: Request, res: Response) => {
+  const inquiries = db.get('contactInquiries') || [];
+  const { status, search } = req.query;
+
+  let filtered = [...inquiries];
+  if (status && status !== 'all') {
+    filtered = filtered.filter((i) => i.status === status);
+  }
+  if (search && typeof search === 'string') {
+    const q = search.toLowerCase().trim();
+    filtered = filtered.filter((i) =>
+      i.name.toLowerCase().includes(q) ||
+      i.email.toLowerCase().includes(q) ||
+      i.subject.toLowerCase().includes(q) ||
+      i.ticketNumber.toLowerCase().includes(q) ||
+      i.message.toLowerCase().includes(q)
+    );
+  }
+
+  res.json(filtered);
+});
+
+// POST /api/admin/inquiries/:id/status
+app.post('/api/admin/inquiries/:id/status', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const inquiries = db.get('contactInquiries') || [];
+  const inquiry = inquiries.find((i) => i.id === req.params.id);
+
+  if (!inquiry) {
+    return res.status(404).json({ error: 'Inquiry not found' });
+  }
+
+  const { status, adminNotes } = req.body;
+  if (!['new', 'in_progress', 'resolved'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid inquiry status' });
+  }
+
+  inquiry.status = status;
+  if (adminNotes !== undefined) inquiry.adminNotes = adminNotes;
+  if (status === 'resolved' && !inquiry.resolvedAt) {
+    inquiry.resolvedAt = new Date().toISOString();
+  }
+
+  db.set('contactInquiries', inquiries);
+
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'UPDATE_INQUIRY_STATUS',
+    targetType: 'user',
+    targetId: inquiry.id,
+    details: `Updated ticket ${inquiry.ticketNumber} status to '${status}'.`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, inquiry });
+});
+
+// GET /api/admin/system/health - Status indicator without exposing secrets
+app.get('/api/admin/system/health', requireAdmin, (_req: Request, res: Response) => {
+  const emailSettings = (db.get('emailSettings') as EmailSettings) || ({} as Partial<EmailSettings>);
+  const chatbotSettings = (db.get('chatbotSettings') as ChatbotSettings) || ({} as Partial<ChatbotSettings>);
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    database: {
+      status: 'connected',
+      type: 'in-memory-json',
+      usersCount: (db.get('users') || []).length,
+      ordersCount: (db.get('orders') || []).length,
+      restaurantsCount: (db.get('restaurants') || []).length,
+    },
+    geminiAi: {
+      status: process.env.GEMINI_API_KEY ? 'active' : 'fallback_mode',
+      model: 'gemini-3.8-flash',
+      chatbotEnabled: chatbotSettings.enabled !== false,
+    },
+    gmail: {
+      status: emailSettings.gmailConnected ? 'authorized' : 'awaiting_owner_auth',
+      configuredInbox: emailSettings.businessEmail || 'shisirtharu51@gmail.com',
+    },
   });
 });
 

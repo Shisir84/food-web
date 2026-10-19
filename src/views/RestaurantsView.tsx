@@ -25,12 +25,21 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
   const categories = ['all', 'Pizza', 'Burgers', 'Biryani', 'Momo', 'Fast Food', 'Italian'];
 
   useEffect(() => {
+    setSearch(initialSearch);
+  }, [initialSearch]);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory || 'all');
+  }, [initialCategory]);
+
+  useEffect(() => {
     async function fetchRestaurants() {
       setIsLoading(true);
       try {
         const data = await api.getRestaurants({
           search: search || undefined,
           category: selectedCategory !== 'all' ? selectedCategory : undefined,
+          vegOnly: onlyVeg,
         });
         setRestaurants(data);
       } catch (err) {
@@ -40,7 +49,7 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
       }
     }
     fetchRestaurants();
-  }, [search, selectedCategory]);
+  }, [search, selectedCategory, onlyVeg]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -141,6 +150,7 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
             onClick={() => {
               setSearch('');
               setSelectedCategory('all');
+              setOnlyVeg(false);
             }}
             className="btn-primary px-4 py-2 text-xs font-bold"
           >

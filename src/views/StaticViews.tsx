@@ -11,6 +11,7 @@ import {
   Send,
   Award,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../services/api.ts';
 
@@ -172,27 +173,60 @@ export const AboutView: React.FC<{ onNavigate: (path: string) => void }> = ({ on
 // CONTACT VIEW
 // -------------------------------------------------------------
 export const ContactView: React.FC = () => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialSubject = searchParams.get('subject') || '';
+  const initialMessage = searchParams.get('message') || '';
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [subject, setSubject] = useState(initialSubject);
+  const [message, setMessage] = useState(initialMessage);
+  const [honeypot, setHoneypot] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responseMsg, setResponseMsg] = useState<string | null>(null);
+  const [ticketNumber, setTicketNumber] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isEscalatedFromChat = initialSubject.includes('AI') || initialMessage.includes('AI Assistant');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setResponseMsg(null);
+    setErrorMessage(null);
+
+    // Basic frontend email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setErrorMessage('Please enter a valid email address (e.g., name@example.com).');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (message.trim().length < 10) {
+      setErrorMessage('Please write a detailed inquiry message (at least 10 characters).');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      const res = await api.submitContact({ name, email, subject, message });
+      const res = await api.submitContact({
+        name: name.trim(),
+        email: email.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+        hp: honeypot, // Honeypot field for anti-spam
+      });
       setResponseMsg(res.message);
+      setTicketNumber(res.ticketNumber);
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
     } catch (e: any) {
-      setResponseMsg('An error occurred. Please reach out to support@novahunger.com.');
+      setErrorMessage(
+        e.message || 'An error occurred while transmitting your inquiry. Please reach out to support@novahunger.com.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -236,11 +270,48 @@ export const ContactView: React.FC = () => {
             onSubmit={handleSubmit}
             className="p-6 sm:p-8 rounded-3xl bg-[#121316] border border-stone-800 space-y-4"
           >
-            {responseMsg && (
-              <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs">
-                {responseMsg}
+            {isEscalatedFromChat && (
+              <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-start gap-2.5 text-xs text-purple-300">
+                <Sparkles className="w-4 h-4 text-[#8B5CF6] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-white block">Inquiry Escalated from Nova AI Assistant</span>
+                  <p className="text-[11px] text-purple-200">
+                    Your conversation summary has been attached below. Please review your details and message, then submit when ready.
+                  </p>
+                </div>
               </div>
             )}
+
+            {ticketNumber && responseMsg && (
+              <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-white">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px]">
+                    Ticket #{ticketNumber}
+                  </span>
+                  <span>Logged & Received</span>
+                </div>
+                <p className="text-xs text-emerald-200 leading-relaxed">{responseMsg}</p>
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
+                {errorMessage}
+              </div>
+            )}
+
+            {/* Anti-spam honeypot field (hidden from genuine users) */}
+            <div className="hidden" aria-hidden="true">
+              <label htmlFor="contact_hp_check">Do not fill this field</label>
+              <input
+                id="contact_hp_check"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
 
             <div>
               <label className="text-[11px] font-semibold text-stone-300 block mb-1">

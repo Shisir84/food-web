@@ -13,6 +13,9 @@ import {
   CustomerStats,
   BackgroundConfig,
   MediaItem,
+  ContactInquiry,
+  ChatbotSettings,
+  EmailSettings,
 } from '../types/index.ts';
 
 const TOKEN_KEY = 'nova_hunger_token';
@@ -119,8 +122,17 @@ export const api = {
   },
 
   // Public
-  async getRestaurants(params?: { search?: string; category?: string; city?: string }) {
-    const query = new URLSearchParams(params as any).toString();
+  async getRestaurants(params?: { search?: string; category?: string; city?: string; vegOnly?: boolean | string }) {
+    const cleanParams: Record<string, string> = {};
+    if (params) {
+      if (params.search) cleanParams.search = params.search;
+      if (params.category && params.category !== 'all' && params.category !== 'all flavors') {
+        cleanParams.category = params.category;
+      }
+      if (params.city) cleanParams.city = params.city;
+      if (params.vegOnly) cleanParams.vegOnly = 'true';
+    }
+    const query = new URLSearchParams(cleanParams).toString();
     return this.request<RestaurantProfile[]>(`/api/restaurants${query ? `?${query}` : ''}`);
   },
 
@@ -330,11 +342,95 @@ export const api = {
     });
   },
 
-  async submitContact(payload: { name: string; email: string; subject: string; message: string }) {
-    return this.request<{ success: boolean; message: string }>('/api/contact', {
+  async submitContact(payload: { name: string; email: string; subject?: string; message: string; hp?: string }) {
+    return this.request<{
+      success: boolean;
+      ticketNumber: string;
+      message: string;
+      destinationEmail: string;
+      emailDeliveryStatus: string;
+    }>('/api/contact', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  },
+
+  // AI Customer Chatbot
+  async getChatbotPublicSettings() {
+    return this.request<{
+      enabled: boolean;
+      botName: string;
+      welcomeMessage: string;
+      suggestedPrompts: string[];
+    }>('/api/chatbot/public-settings');
+  },
+
+  async sendChatMessage(payload: { message: string; history?: any[] }) {
+    return this.request<{
+      reply: string;
+      suggestedAction?: {
+        type: 'navigate' | 'cart' | 'contact_form';
+        label: string;
+        target: string;
+        payload?: any;
+      };
+      model?: string;
+    }>('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Admin AI Chatbot & Gmail Settings
+  async getAdminChatbotSettings() {
+    return this.request<{
+      settings: ChatbotSettings;
+      geminiApiKeyConfigured: boolean;
+      geminiModel: string;
+    }>('/api/admin/chatbot/settings');
+  },
+
+  async saveAdminChatbotSettings(settings: Partial<ChatbotSettings>) {
+    return this.request<{ success: boolean; settings: ChatbotSettings }>('/api/admin/chatbot/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    });
+  },
+
+  async getAdminEmailSettings() {
+    return this.request<{
+      settings: EmailSettings;
+      firebaseAppletConfigured: boolean;
+    }>('/api/admin/email/settings');
+  },
+
+  async saveAdminEmailSettings(settings: Partial<EmailSettings>) {
+    return this.request<{ success: boolean; settings: EmailSettings }>('/api/admin/email/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    });
+  },
+
+  async getAdminInquiries(params?: { status?: string; search?: string }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request<ContactInquiry[]>(`/api/admin/inquiries${query ? `?${query}` : ''}`);
+  },
+
+  async updateAdminInquiryStatus(id: string, status: string, adminNotes?: string) {
+    return this.request<{ success: boolean; inquiry: ContactInquiry }>(`/api/admin/inquiries/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status, adminNotes }),
+    });
+  },
+
+  async getAdminSystemHealth() {
+    return this.request<{
+      status: string;
+      timestamp: string;
+      database: { status: string; type: string; usersCount: number; ordersCount: number; restaurantsCount: number };
+      geminiAi: { status: string; model: string; chatbotEnabled: boolean };
+      gmail: { status: string; configuredInbox: string };
+    }>('/api/admin/system/health');
   },
 
   // Theme & Appearance

@@ -249,6 +249,22 @@
           "isDefault": true
         }
       ]
+    },
+    {
+      "id": "usr_guest_1792412060307_56pu3",
+      "name": "Alex Vance",
+      "email": "alex@example.com",
+      "role": "customer",
+      "phone": "+1 (555) 333-4444",
+      "createdAt": "2026-10-19T12:14:20.307Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "street": "10 Downing St",
+          "city": "Metropolis",
+          "postalCode": "10001"
+        }
+      ]
     }
   ],
   "passwords": {
@@ -405,12 +421,13 @@
       "minOrder": 15,
       "status": "approved",
       "isAvailable": true,
-      "totalOrders": 1840,
-      "totalRevenue": 47820,
+      "totalOrders": 1841,
+      "totalRevenue": 47863.95,
       "cuisineTypes": [
         "Pizza",
         "Italian",
-        "Wood-Fired"
+        "Wood-Fired",
+        "Desserts"
       ],
       "createdAt": "2026-01-15T10:00:00.000Z"
     },
@@ -437,7 +454,8 @@
       "cuisineTypes": [
         "Biryani",
         "Mughlai",
-        "Royal Indian"
+        "Royal Indian",
+        "Desserts"
       ],
       "createdAt": "2026-01-20T10:00:00.000Z"
     },
@@ -464,7 +482,8 @@
       "cuisineTypes": [
         "Burgers",
         "Fast Food",
-        "American"
+        "American",
+        "Desserts"
       ],
       "createdAt": "2026-02-05T12:00:00.000Z"
     },
@@ -491,7 +510,8 @@
       "cuisineTypes": [
         "Momo",
         "Tibetan",
-        "Asian"
+        "Asian",
+        "Fast Food"
       ],
       "createdAt": "2026-04-15T16:00:00.000Z"
     }
@@ -686,9 +706,143 @@
       "preparationTimeMinutes": 14,
       "rating": 4.86,
       "ordersCount": 610
+    },
+    {
+      "id": "food_9",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "name": "Artisan Tiramisu al Mascarpone",
+      "description": "Espresso-soaked Italian savoiardi ladyfingers layered with whipped mascarpone cream and dusted with Valrhona cocoa.",
+      "price": 8.5,
+      "category": "Desserts",
+      "imageUrl": "/src/assets/images/hero_food_showcase_1792316190702.jpg",
+      "isVeg": true,
+      "isAvailable": true,
+      "preparationTimeMinutes": 10,
+      "rating": 4.95,
+      "ordersCount": 780
+    },
+    {
+      "id": "food_10",
+      "restaurantId": "rest_2",
+      "restaurantName": "The Royal Dum Darbar",
+      "name": "Royal Shahi Kesar Phirni & Gulab Jamun",
+      "description": "Slow-cooked saffron rice pudding served chilled in traditional clay pot alongside two warm syrup-infused mawa gulab jamuns.",
+      "price": 7.5,
+      "category": "Desserts",
+      "imageUrl": "/src/assets/images/hero_food_showcase_1792316190702.jpg",
+      "isVeg": true,
+      "isAvailable": true,
+      "preparationTimeMinutes": 10,
+      "rating": 4.9,
+      "ordersCount": 650
+    },
+    {
+      "id": "food_11",
+      "restaurantId": "rest_3",
+      "restaurantName": "Smash & Bun Craft Burgers",
+      "name": "Triple Chocolate Molten Lava Cake",
+      "description": "Warm dark chocolate cake with a molten ganache center, served with Madagascan vanilla bean cream.",
+      "price": 8,
+      "category": "Desserts",
+      "imageUrl": "/src/assets/images/hero_food_showcase_1792316190702.jpg",
+      "isVeg": true,
+      "isAvailable": true,
+      "preparationTimeMinutes": 12,
+      "rating": 4.92,
+      "ordersCount": 820
+    },
+    {
+      "id": "food_12",
+      "restaurantId": "rest_3",
+      "restaurantName": "Smash & Bun Craft Burgers",
+      "name": "Crispy Loaded Cheesy Truffle Fries",
+      "description": "Double-fried Idaho russet potatoes tossed in black truffle oil, parmesan, chives, and melted four-cheese sauce.",
+      "price": 6.5,
+      "category": "Fast Food",
+      "imageUrl": "/src/assets/images/category_gourmet_burger_1792316192570.jpg",
+      "isVeg": true,
+      "isAvailable": true,
+      "preparationTimeMinutes": 10,
+      "rating": 4.88,
+      "ordersCount": 1150
+    },
+    {
+      "id": "food_13",
+      "restaurantId": "rest_4",
+      "restaurantName": "Himalayan Momo & Steams",
+      "name": "Himalayan Kothey Pan-Fried Chicken Momos (10 Pcs)",
+      "description": "Pan-seared crispy bottom Himalayan dumplings filled with savory minced chicken, mountain herbs, served with fire-roasted sesame chutney.",
+      "price": 15,
+      "category": "Momo",
+      "imageUrl": "/src/assets/images/category_steamed_momo_1792316192474.jpg",
+      "isVeg": false,
+      "isAvailable": true,
+      "preparationTimeMinutes": 15,
+      "rating": 4.94,
+      "ordersCount": 420
+    },
+    {
+      "id": "food_14",
+      "restaurantId": "rest_4",
+      "restaurantName": "Himalayan Momo & Steams",
+      "name": "Steamed Mountain Veg Momos (10 Pcs)",
+      "description": "Freshly steamed delicate dumplings packed with seasonal greens, Himalayan paneer, ginger, and garlic with zesty chili dip.",
+      "price": 13,
+      "category": "Momo",
+      "imageUrl": "/src/assets/images/category_steamed_momo_1792316192474.jpg",
+      "isVeg": true,
+      "isAvailable": true,
+      "preparationTimeMinutes": 14,
+      "rating": 4.91,
+      "ordersCount": 390
     }
   ],
   "orders": [
+    {
+      "id": "ord_1792412060308",
+      "orderNumber": "NV-8023",
+      "customerId": "usr_guest_1792412060307_56pu3",
+      "customerName": "Alex Vance",
+      "customerPhone": "+1 (555) 333-4444",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 2,
+          "subtotal": 37,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 37,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 2.96,
+      "total": 43.95,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "street": "10 Downing St",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:14:20.308Z",
+          "note": "Order placed by Alex Vance via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:14:20.308Z",
+      "updatedAt": "2026-10-19T12:14:20.308Z"
+    },
     {
       "id": "ord_1001",
       "orderNumber": "NV-8841",
@@ -997,6 +1151,16 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1792412060301",
+      "adminId": "system",
+      "adminEmail": "marcus@rome.example.com",
+      "action": "CONTACT_SUPPORT_INQUIRY",
+      "targetType": "user",
+      "targetId": "inq_1792412060300_2hn27",
+      "details": "Customer inquiry from Marcus Aurelius (marcus@rome.example.com): [Test Support Inquiry] (TKT-997917). Delivery status: stored_locally_awaiting_gmail_auth.",
+      "timestamp": "2026-10-19T12:14:20.301Z"
+    },
     {
       "id": "log_1792381851160",
       "adminId": "usr_admin",
@@ -1410,6 +1574,16 @@
   ],
   "notifications": [
     {
+      "id": "notif_1792412060309",
+      "userId": "usr_guest_1792412060307_56pu3",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-8023 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792412060308",
+      "createdAt": "2026-10-19T12:14:20.309Z"
+    },
+    {
       "id": "notif_1792378886146",
       "userId": "usr_rider_1792378860162",
       "title": "Congratulations! Application Approved 🎉",
@@ -1501,5 +1675,52 @@
     "tok_admin_1792379979754_tyleouk": 1792466379755,
     "tok_admin_1792380757564_rpm263g": 1794972757566,
     "tok_admin_1792381851159_up3wmuq": 1792468251160
+  },
+  "contactInquiries": [
+    {
+      "id": "inq_1792412060300_2hn27",
+      "ticketNumber": "TKT-997917",
+      "name": "Marcus Aurelius",
+      "email": "marcus@rome.example.com",
+      "subject": "Test Support Inquiry",
+      "message": "This is a comprehensive test of Nova Hunger customer contact support.",
+      "status": "new",
+      "emailSent": false,
+      "emailDeliveryStatus": "stored_locally_awaiting_gmail_auth",
+      "createdAt": "2026-10-19T12:14:20.300Z"
+    },
+    {
+      "id": "inq_demo_1",
+      "ticketNumber": "TKT-104921",
+      "name": "Elena Rostova",
+      "email": "customer@novahunger.com",
+      "subject": "Delivery Instructions update",
+      "message": "Hi, I wanted to confirm if the rider can ring the intercom twice upon arrival. Thank you!",
+      "status": "resolved",
+      "emailSent": true,
+      "emailDeliveryStatus": "delivered",
+      "createdAt": "2026-10-18T10:15:00.000Z",
+      "resolvedAt": "2026-10-18T10:30:00.000Z"
+    }
+  ],
+  "chatbotSettings": {
+    "enabled": true,
+    "botName": "Nova AI Assistant",
+    "welcomeMessage": "Hello! I am your Nova AI Assistant. How can I assist you with restaurants, delicious menu items, or your delivery today?",
+    "suggestedPrompts": [
+      "Find me a pizza restaurant.",
+      "What food can I order?",
+      "Recommend something vegetarian.",
+      "How do I place an order?",
+      "How can I track my order?",
+      "How can I contact support?"
+    ],
+    "geminiModel": "gemini-3.8-flash"
+  },
+  "emailSettings": {
+    "businessEmail": "shisirtharu51@gmail.com",
+    "gmailConnected": false,
+    "gmailAccount": "shisirtharu51@gmail.com",
+    "lastChecked": "2026-10-19T04:45:00.000Z"
   }
 }

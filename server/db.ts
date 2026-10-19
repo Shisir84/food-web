@@ -11,6 +11,9 @@ import type {
   NotificationItem,
   ThemeSettings,
   MediaItem,
+  ContactInquiry,
+  ChatbotSettings,
+  EmailSettings,
 } from '../src/types/index.ts';
 
 const DB_FILE = path.resolve(process.cwd(), 'data', 'database.json');
@@ -29,6 +32,9 @@ export interface DatabaseSchema {
   notifications: NotificationItem[];
   themeSettings: ThemeSettings;
   mediaLibrary: MediaItem[];
+  contactInquiries?: ContactInquiry[];
+  chatbotSettings?: ChatbotSettings;
+  emailSettings?: EmailSettings;
 }
 
 const INITIAL_FOOD_IMAGES = {
@@ -752,6 +758,40 @@ class Database {
 
         if (!parsed.tokenExpires) {
           parsed.tokenExpires = {};
+          modified = true;
+        }
+
+        if (!parsed.contactInquiries) {
+          parsed.contactInquiries = [];
+          modified = true;
+        }
+
+        if (!parsed.chatbotSettings) {
+          parsed.chatbotSettings = {
+            enabled: true,
+            botName: 'Nova AI Assistant',
+            welcomeMessage:
+              'Hello! I am your Nova AI Assistant. How can I assist you with restaurants, delicious menu items, or your delivery today?',
+            suggestedPrompts: [
+              'Find me a pizza restaurant.',
+              'What food can I order?',
+              'Recommend something vegetarian.',
+              'How do I place an order?',
+              'How can I track my order?',
+              'How can I contact support?',
+            ],
+            geminiModel: 'gemini-3.8-flash',
+          };
+          modified = true;
+        }
+
+        if (!parsed.emailSettings) {
+          parsed.emailSettings = {
+            businessEmail: 'shisirtharu51@gmail.com',
+            gmailConnected: false,
+            gmailAccount: 'shisirtharu51@gmail.com',
+            lastChecked: new Date().toISOString(),
+          };
           modified = true;
         }
 

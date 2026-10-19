@@ -280,3 +280,49 @@ export interface MediaItem {
   uploadedAt: string;
 }
 
+export interface ContactInquiry {
+  id: string;
+  ticketNumber: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: 'new' | 'in_progress' | 'resolved';
+  emailSent: boolean;
+  emailDeliveryStatus?: string;
+  createdAt: string;
+  resolvedAt?: string;
+  adminNotes?: string;
+}
+
+export interface ChatbotSettings {
+  enabled: boolean;
+  botName: string;
+  welcomeMessage: string;
+  suggestedPrompts: string[];
+  geminiModel: string;
+}
+
+export interface EmailSettings {
+  businessEmail: string;
+  gmailConnected: boolean;
+  gmailAccount?: string;
+  lastChecked?: string;
+  oauthClientId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'bot';
+  role?: 'user' | 'model';
+  text: string;
+  content?: string;
+  timestamp: string;
+  suggestedAction?: {
+    type: 'navigate' | 'cart' | 'contact_form';
+    label: string;
+    target: string;
+    payload?: any;
+  };
+}
+

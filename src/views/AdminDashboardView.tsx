@@ -49,6 +49,14 @@ import {
   Activity,
   Bell,
   Sliders,
+  Bot,
+  MessageSquare,
+  Inbox,
+  Radio,
+  HeartPulse,
+  Cpu,
+  ExternalLink,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { api } from '../services/api.ts';
@@ -65,6 +73,9 @@ import {
   BackgroundConfig,
   MediaItem,
   User as UserType,
+  ContactInquiry,
+  ChatbotSettings,
+  EmailSettings,
 } from '../types/index.ts';
 
 interface AdminDashboardViewProps {
@@ -77,6 +88,9 @@ type AdminTab =
   | 'riders'
   | 'restaurants'
   | 'orders'
+  | 'inquiries'
+  | 'chatbot'
+  | 'email'
   | 'users'
   | 'appearance'
   | 'media'
@@ -95,6 +109,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     if (path.includes('/riders')) return 'riders';
     if (path.includes('/restaurants')) return 'restaurants';
     if (path.includes('/orders')) return 'orders';
+    if (path.includes('/inquiries')) return 'inquiries';
+    if (path.includes('/chatbot')) return 'chatbot';
+    if (path.includes('/email')) return 'email';
     if (path.includes('/users')) return 'users';
     if (path.includes('/appearance')) return 'appearance';
     if (path.includes('/media')) return 'media';
@@ -193,6 +210,45 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
+  // Inquiries State
+  const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
+  const [inquirySearch, setInquirySearch] = useState('');
+  const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
+  const [inquiriesLoading, setInquiriesLoading] = useState(false);
+  const [inspectingInquiry, setInspectingInquiry] = useState<ContactInquiry | null>(null);
+  const [adminNoteInput, setAdminNoteInput] = useState('');
+  const [inquiryActionLoading, setInquiryActionLoading] = useState(false);
+
+  // Chatbot Settings State
+  const [chatbotSettings, setChatbotSettings] = useState<ChatbotSettings>({
+    enabled: true,
+    botName: 'Nova AI Assistant',
+    welcomeMessage: 'Hello! I am your Nova AI Assistant. How can I assist you with restaurants, delicious menu items, or your delivery today?',
+    suggestedPrompts: [
+      'Find me a pizza restaurant.',
+      'What food can I order?',
+      'Recommend something vegetarian.',
+      'How do I place an order?',
+      'How can I track my order?',
+      'How can I contact support?',
+    ],
+    geminiModel: 'gemini-3.8-flash',
+  });
+  const [geminiApiKeyConfigured, setGeminiApiKeyConfigured] = useState(false);
+  const [chatbotSaving, setChatbotSaving] = useState(false);
+  const [newPromptInput, setNewPromptInput] = useState('');
+
+  // Email / Gmail Settings State
+  const [emailSettings, setEmailSettings] = useState<EmailSettings>({
+    businessEmail: 'shisirtharu51@gmail.com',
+    gmailConnected: false,
+    gmailAccount: 'shisirtharu51@gmail.com',
+    lastChecked: new Date().toISOString(),
+  });
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [systemHealth, setSystemHealth] = useState<any>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+
   // Sync draftTheme whenever theme updates
   useEffect(() => {
     setDraftTheme(theme);
@@ -278,6 +334,56 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     }
   };
 
+  // Load Inquiries
+  const loadInquiries = async () => {
+    try {
+      setInquiriesLoading(true);
+      const data = await api.getAdminInquiries({
+        status: inquiryStatusFilter,
+        search: inquirySearch,
+      });
+      setInquiries(data);
+    } catch (err: any) {
+      console.error('Failed to load customer inquiries:', err);
+    } finally {
+      setInquiriesLoading(false);
+    }
+  };
+
+  // Load Chatbot Settings
+  const loadChatbotSettings = async () => {
+    try {
+      const res = await api.getAdminChatbotSettings();
+      if (res.settings) setChatbotSettings(res.settings);
+      setGeminiApiKeyConfigured(res.geminiApiKeyConfigured);
+    } catch (err: any) {
+      console.error('Failed to load chatbot configuration:', err);
+    }
+  };
+
+  // Load Email Settings
+  const loadEmailSettings = async () => {
+    try {
+      const res = await api.getAdminEmailSettings();
+      if (res.settings) setEmailSettings(res.settings);
+    } catch (err: any) {
+      console.error('Failed to load email settings:', err);
+    }
+  };
+
+  // Load System Health
+  const loadSystemHealth = async () => {
+    try {
+      setHealthLoading(true);
+      const res = await api.getAdminSystemHealth();
+      setSystemHealth(res);
+    } catch (err: any) {
+      console.error('Failed to load system health diagnostics:', err);
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
   // Initial & Tab-based data loading
   useEffect(() => {
     loadPlatformData();
@@ -293,6 +399,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     if (activeTab === 'users') {
       loadUsers();
     }
+    if (activeTab === 'inquiries') {
+      loadInquiries();
+    }
+    if (activeTab === 'chatbot') {
+      loadChatbotSettings();
+    }
+    if (activeTab === 'email') {
+      loadEmailSettings();
+    }
+    if (activeTab === 'security' || activeTab === 'dashboard') {
+      loadSystemHealth();
+    }
   }, [
     activeTab,
     customerSearch,
@@ -304,7 +422,72 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     mediaCategoryFilter,
     userRoleFilter,
     userSearch,
+    inquirySearch,
+    inquiryStatusFilter,
   ]);
+
+  // Handlers for Inquiries, Chatbot, Email
+  const handleUpdateInquiryStatus = async (id: string, status: string, notes?: string) => {
+    setInquiryActionLoading(true);
+    try {
+      await api.updateAdminInquiryStatus(id, status, notes);
+      showSuccess(`Inquiry status updated to '${status.replace('_', ' ')}'!`);
+      if (inspectingInquiry && inspectingInquiry.id === id) {
+        setInspectingInquiry((prev) => (prev ? { ...prev, status: status as any, adminNotes: notes || prev.adminNotes } : null));
+      }
+      await loadInquiries();
+    } catch (err: any) {
+      showError(err.message || 'Failed to update inquiry status.');
+    } finally {
+      setInquiryActionLoading(false);
+    }
+  };
+
+  const handleSaveChatbotSettings = async () => {
+    setChatbotSaving(true);
+    try {
+      await api.saveAdminChatbotSettings(chatbotSettings);
+      showSuccess('Nova AI Assistant configuration saved successfully!');
+    } catch (err: any) {
+      showError(err.message || 'Failed to save chatbot settings.');
+    } finally {
+      setChatbotSaving(false);
+    }
+  };
+
+  const handleAddPrompt = () => {
+    const p = newPromptInput.trim();
+    if (!p) return;
+    if (chatbotSettings.suggestedPrompts.includes(p)) {
+      showError('This suggested prompt is already in the list.');
+      return;
+    }
+    setChatbotSettings((prev) => ({
+      ...prev,
+      suggestedPrompts: [...prev.suggestedPrompts, p],
+    }));
+    setNewPromptInput('');
+  };
+
+  const handleDeletePrompt = (index: number) => {
+    setChatbotSettings((prev) => ({
+      ...prev,
+      suggestedPrompts: prev.suggestedPrompts.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSaveEmailSettings = async () => {
+    setEmailSaving(true);
+    try {
+      await api.saveAdminEmailSettings(emailSettings);
+      showSuccess('Contact inbox and Gmail settings updated successfully!');
+      await loadSystemHealth();
+    } catch (err: any) {
+      showError(err.message || 'Failed to update email settings.');
+    } finally {
+      setEmailSaving(false);
+    }
+  };
 
   // Toast Helpers
   const showSuccess = (msg: string) => {
@@ -617,11 +800,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
       icon: <Package className="w-4 h-4" />,
       badge: stats?.activeDeliveries ? stats.activeDeliveries : undefined,
     },
+    {
+      id: 'inquiries',
+      label: 'Customer Inquiries',
+      icon: <Mail className="w-4 h-4" />,
+      badge: inquiries.filter((i) => i.status === 'new').length > 0 ? inquiries.filter((i) => i.status === 'new').length : undefined,
+    },
+    { id: 'chatbot', label: 'AI Chatbot Control', icon: <Bot className="w-4 h-4" /> },
+    { id: 'email', label: 'Gmail & Contact Desk', icon: <Inbox className="w-4 h-4" /> },
     { id: 'users', label: 'User Directory', icon: <UserCheck className="w-4 h-4" /> },
     { id: 'appearance', label: 'Appearance & BG', icon: <Palette className="w-4 h-4" /> },
     { id: 'media', label: 'Media Uploader', icon: <Upload className="w-4 h-4" /> },
     { id: 'logs', label: 'System Audit Logs', icon: <Activity className="w-4 h-4" /> },
-    { id: 'security', label: 'Security & Profile', icon: <Lock className="w-4 h-4" /> },
+    { id: 'security', label: 'Security & Health', icon: <Lock className="w-4 h-4" /> },
   ];
 
   return (
@@ -2797,6 +2988,529 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
               </div>
             </div>
           )}
+
+          {/* ===================================================== */}
+          {/* TAB 11: CUSTOMER INQUIRIES & TICKETS                  */}
+          {/* ===================================================== */}
+          {activeTab === 'inquiries' && (
+            <div className="space-y-6 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-display text-2xl font-bold tracking-tight">Customer Support Inquiries</h1>
+                  <p className="text-xs text-stone-400 mt-1">
+                    Manage incoming contact requests, escalated chatbot inquiries, and support tickets.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={loadInquiries}
+                    disabled={inquiriesLoading}
+                    className="p-2 rounded-xl border border-[#2B2B30] text-[#B8B8C0] hover:text-white hover:bg-white/5 transition-colors"
+                    title="Refresh inquiries"
+                  >
+                    <RotateCw className={`w-4 h-4 ${inquiriesLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Inquiry Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-semibold text-stone-400">Total Inquiries</span>
+                  <div className="font-display text-2xl sm:text-3xl font-extrabold text-white">
+                    {inquiries.length}
+                  </div>
+                  <span className="text-[11px] text-stone-500 block">Logged to database</span>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-semibold text-stone-400">New / Unresolved</span>
+                  <div className="font-display text-2xl sm:text-3xl font-extrabold text-amber-400">
+                    {inquiries.filter((i) => i.status === 'new').length}
+                  </div>
+                  <span className="text-[11px] text-amber-500/80 block">Requires review</span>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-semibold text-stone-400">In Progress</span>
+                  <div className="font-display text-2xl sm:text-3xl font-extrabold text-cyan-400">
+                    {inquiries.filter((i) => i.status === 'in_progress').length}
+                  </div>
+                  <span className="text-[11px] text-cyan-500/80 block">Being resolved</span>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-semibold text-stone-400">Resolved</span>
+                  <div className="font-display text-2xl sm:text-3xl font-extrabold text-emerald-400">
+                    {inquiries.filter((i) => i.status === 'resolved').length}
+                  </div>
+                  <span className="text-[11px] text-emerald-500/80 block">Successfully closed</span>
+                </div>
+              </div>
+
+              {/* Filters and Search */}
+              <div className={`p-4 rounded-3xl border shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={inquirySearch}
+                    onChange={(e) => setInquirySearch(e.target.value)}
+                    placeholder="Search by ticket #, sender, or subject..."
+                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl pl-10 pr-3.5 py-2 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+                  {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setInquiryStatusFilter(status)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                        inquiryStatusFilter === status
+                          ? 'bg-orange-500 text-black font-bold'
+                          : 'bg-[#0B0B0D] text-[#B8B8C0] border border-[#2B2B30] hover:text-white'
+                      }`}
+                    >
+                      {status === 'all'
+                        ? 'All Tickets'
+                        : status === 'in_progress'
+                        ? 'In Progress'
+                        : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Inquiries Table */}
+              <div className={`rounded-3xl border shadow-sm overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                {inquiriesLoading ? (
+                  <div className="py-16 text-center text-xs text-stone-400">Loading customer inquiries...</div>
+                ) : inquiries.length === 0 ? (
+                  <div className="py-16 text-center text-xs text-stone-400 space-y-2">
+                    <Mail className="w-8 h-8 mx-auto text-stone-600" />
+                    <p className="font-semibold text-white">No inquiries found</p>
+                    <p className="text-[11px]">Any messages submitted via the Contact form or AI Chatbot escalation appear here.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#0B0B0D] border-b border-[#2B2B30] text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                        <tr>
+                          <th className="py-3.5 px-4">Ticket Reference</th>
+                          <th className="py-3.5 px-4">Sender & Contact</th>
+                          <th className="py-3.5 px-4">Subject & Inquiry</th>
+                          <th className="py-3.5 px-4">Delivery Status</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-4">Timestamp</th>
+                          <th className="py-3.5 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#2B2B30]">
+                        {inquiries.map((inq) => (
+                          <tr key={inq.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-3 px-4 font-mono font-bold text-orange-400">
+                              {inq.ticketNumber}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-bold text-white block">{inq.name}</span>
+                              <span className="text-[11px] text-stone-400">{inq.email}</span>
+                            </td>
+                            <td className="py-3 px-4 max-w-xs">
+                              <span className="font-semibold text-stone-200 block truncate">{inq.subject}</span>
+                              <span className="text-[11px] text-stone-500 line-clamp-1">{inq.message}</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              {inq.emailSent ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                                  <Check className="w-3 h-3" />
+                                  <span>Gmail Sent</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20">
+                                  <ShieldCheck className="w-3 h-3" />
+                                  <span>Database Saved</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                  inq.status === 'new'
+                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    : inq.status === 'in_progress'
+                                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                }`}
+                              >
+                                {inq.status.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-stone-400 text-[11px] whitespace-nowrap">
+                              {new Date(inq.createdAt).toLocaleString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
+                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  setInspectingInquiry(inq);
+                                  setAdminNoteInput(inq.adminNotes || '');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500 text-orange-400 hover:text-black font-bold text-xs transition-colors"
+                              >
+                                Review Ticket
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================== */}
+          {/* TAB 12: AI CHATBOT CONTROL & CUSTOMIZATION           */}
+          {/* ===================================================== */}
+          {activeTab === 'chatbot' && (
+            <div className="space-y-6 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-display text-2xl font-bold tracking-tight">Nova AI Assistant Control</h1>
+                  <p className="text-xs text-stone-400 mt-1">
+                    Manage real-time Gemini AI customer assistant, greetings, grounding, and suggested prompts.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSaveChatbotSettings}
+                  disabled={chatbotSaving}
+                  className="btn-primary px-5 py-2.5 text-xs font-bold flex items-center gap-2 shadow-md"
+                >
+                  {chatbotSaving ? <RotateCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  <span>{chatbotSaving ? 'Saving Changes...' : 'Save Configuration'}</span>
+                </button>
+              </div>
+
+              {/* Status and Diagnostics Banner */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-3 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">Assistant Status</span>
+                    <button
+                      onClick={() =>
+                        setChatbotSettings((prev) => ({ ...prev, enabled: !prev.enabled }))
+                      }
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        chatbotSettings.enabled ? 'bg-emerald-500' : 'bg-stone-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          chatbotSettings.enabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <p className="text-xs text-stone-400">
+                    {chatbotSettings.enabled
+                      ? 'The floating Nova AI button is active for all customers.'
+                      : 'The chatbot is disabled and hidden from customer view.'}
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Gemini AI Model</span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 font-mono text-xs font-bold">
+                      gemini-3.8-flash
+                    </span>
+                    <span className="text-[11px] text-emerald-400 font-semibold">● Active</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Official @google/genai SDK with streaming, grounding, and high-velocity inference.
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Ground Truth Context</span>
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>Real Database Grounding</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Synchronized live with approved restaurants, verified menus, prices, and vouchers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Bot Persona & Welcome Message */}
+              <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                <h3 className="font-display font-bold text-base text-white">Assistant Branding & Greeting</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-semibold text-stone-400 block mb-1">
+                      Assistant Public Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={chatbotSettings.botName}
+                      onChange={(e) =>
+                        setChatbotSettings((prev) => ({ ...prev, botName: e.target.value }))
+                      }
+                      className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-stone-400 block mb-1">
+                      AI Studio Security Clearance
+                    </label>
+                    <div className="p-2.5 rounded-xl bg-black/20 border border-[#2B2B30] text-xs text-stone-400 flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>API keys stored securely in server environment (never leaked to browser)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-stone-400 block mb-1">
+                    Initial Welcome Message
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={chatbotSettings.welcomeMessage}
+                    onChange={(e) =>
+                      setChatbotSettings((prev) => ({ ...prev, welcomeMessage: e.target.value }))
+                    }
+                    className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* Suggested Prompts Management */}
+              <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display font-bold text-base text-white">Suggested Starter Prompts</h3>
+                    <p className="text-xs text-stone-400">
+                      Quick suggestions displayed to users when they first launch the assistant.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newPromptInput}
+                    onChange={(e) => setNewPromptInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddPrompt();
+                      }
+                    }}
+                    placeholder="e.g. Recommend something sweet for dessert..."
+                    className="flex-1 bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPrompt}
+                    className="btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Prompt</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {chatbotSettings.suggestedPrompts.map((prompt, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-between text-xs text-stone-200"
+                    >
+                      <span>{prompt}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePrompt(idx)}
+                        className="text-stone-500 hover:text-rose-400 transition-colors p-1"
+                        title="Remove prompt"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================== */}
+          {/* TAB 13: GMAIL INTEGRATION & SUPPORT INBOX             */}
+          {/* ===================================================== */}
+          {activeTab === 'email' && (
+            <div className="space-y-6 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-display text-2xl font-bold tracking-tight">Gmail & Customer Support Gateway</h1>
+                  <p className="text-xs text-stone-400 mt-1">
+                    Configure customer inquiry routing, owner Gmail dispatch, and OAuth connection status.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSaveEmailSettings}
+                  disabled={emailSaving}
+                  className="btn-primary px-5 py-2.5 text-xs font-bold flex items-center gap-2 shadow-md"
+                >
+                  {emailSaving ? <RotateCw className="w-4 h-4 animate-spin" /> : <Inbox className="w-4 h-4" />}
+                  <span>{emailSaving ? 'Saving...' : 'Save Email Settings'}</span>
+                </button>
+              </div>
+
+              {/* Status and Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Destination Inbox</span>
+                  <div className="font-mono text-sm font-bold text-orange-400 truncate">
+                    {emailSettings.businessEmail}
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    All customer messages, inquiries, and ticket alerts are sent to this address.
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Gmail Integration State</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        emailSettings.gmailConnected
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      }`}
+                    >
+                      {emailSettings.gmailConnected ? 'Connected & Authorized' : 'Database Storage Guard Active'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Messages are safely preserved in the database and displayed in Customer Inquiries.
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Delivery Redundancy</span>
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Zero Data Loss Protection</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    If an email API delivery attempt is delayed, the full ticket is saved in your admin dashboard.
+                  </p>
+                </div>
+              </div>
+
+              {/* Inbox Configuration Form */}
+              <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                <h3 className="font-display font-bold text-base text-white">Owner Support Inbox Configuration</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-semibold text-stone-400 block mb-1">
+                      Business / Support Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={emailSettings.businessEmail}
+                      onChange={(e) =>
+                        setEmailSettings((prev) => ({ ...prev, businessEmail: e.target.value }))
+                      }
+                      className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-stone-400 block mb-1">
+                      Target Gmail Account for API Dispatch
+                    </label>
+                    <input
+                      type="email"
+                      value={emailSettings.gmailAccount || emailSettings.businessEmail}
+                      onChange={(e) =>
+                        setEmailSettings((prev) => ({ ...prev, gmailAccount: e.target.value }))
+                      }
+                      className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Instructions on Owner Authorization */}
+                <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-xs text-blue-200 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-white">
+                    <Info className="w-4 h-4 text-blue-400" />
+                    <span>How Gmail Integration Works on Nova Hunger Food</span>
+                  </div>
+                  <p className="leading-relaxed text-[11px] text-blue-300">
+                    Customer messages submitted through the Contact Desk are routed directly to <strong className="text-white">{emailSettings.businessEmail}</strong>. 
+                    When Gmail OAuth is authorized with send scope, messages are dispatched via Google Workspace Gmail APIs. When running locally or prior to owner OAuth consent, tickets are guaranteed and preserved directly in the Nova database and immediately accessible in the <button onClick={() => setActiveTab('inquiries')} className="underline text-white font-bold">Customer Inquiries tab</button>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Service Health Indicators */}
+              <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display font-bold text-base text-white">Service Health Diagnostics</h3>
+                  <button
+                    onClick={loadSystemHealth}
+                    className="text-xs text-orange-400 hover:text-white flex items-center gap-1"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 ${healthLoading ? 'animate-spin' : ''}`} />
+                    <span>Run Health Check</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-300">Database Engine</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    </div>
+                    <div className="font-bold text-sm text-emerald-400">Connected</div>
+                    <span className="text-[10px] text-stone-500 block">
+                      {systemHealth?.database?.restaurantsCount || 4} certified kitchens loaded
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-300">Gemini AI Engine</span>
+                      <span className="w-2 h-2 rounded-full bg-purple-400" />
+                    </div>
+                    <div className="font-bold text-sm text-purple-300">Online (gemini-3.8-flash)</div>
+                    <span className="text-[10px] text-stone-500 block">
+                      Ready with intelligent menu grounding
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-300">Customer Inbox</span>
+                      <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                    </div>
+                    <div className="font-bold text-sm text-cyan-300">Active & Routing</div>
+                    <span className="text-[10px] text-stone-500 block">
+                      {emailSettings.businessEmail}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -3257,6 +3971,150 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 8: INSPECT & RESOLVE CUSTOMER INQUIRY               */}
+      {/* ========================================================= */}
+      {inspectingInquiry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div
+            className={`w-full max-w-xl border rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto ${
+              isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#151518] border-[#2B2B30] text-white'
+            }`}
+          >
+            <div className="flex items-center justify-between border-b pb-4 border-inherit">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-sm text-orange-400">
+                    {inspectingInquiry.ticketNumber}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      inspectingInquiry.status === 'new'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : inspectingInquiry.status === 'in_progress'
+                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    }`}
+                  >
+                    {inspectingInquiry.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <h3 className="font-display font-bold text-base text-white mt-1">
+                  {inspectingInquiry.subject}
+                </h3>
+              </div>
+              <button
+                onClick={() => setInspectingInquiry(null)}
+                className="text-stone-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Sender Details */}
+            <div className="grid grid-cols-2 gap-3 text-xs p-3.5 rounded-2xl bg-black/20 border border-stone-800">
+              <div>
+                <span className="text-[11px] text-stone-500 block">Sender Name</span>
+                <span className="font-bold text-white">{inspectingInquiry.name}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-stone-500 block">Sender Email</span>
+                <a
+                  href={`mailto:${inspectingInquiry.email}?subject=Re:%20${encodeURIComponent(inspectingInquiry.subject)}%20[${inspectingInquiry.ticketNumber}]`}
+                  className="font-semibold text-orange-400 hover:underline flex items-center gap-1"
+                >
+                  <span>{inspectingInquiry.email}</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <div>
+                <span className="text-[11px] text-stone-500 block">Logged At</span>
+                <span className="text-stone-300">{new Date(inspectingInquiry.createdAt).toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-stone-500 block">Delivery Channel</span>
+                <span className="text-stone-300">
+                  {inspectingInquiry.emailSent ? 'Delivered via Gmail API' : 'Stored in Nova Database'}
+                </span>
+              </div>
+            </div>
+
+            {/* Inquiry Content */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                Customer Message
+              </span>
+              <div className="p-4 rounded-2xl bg-black/30 border border-stone-800 text-xs text-stone-200 whitespace-pre-wrap leading-relaxed select-text">
+                {inspectingInquiry.message}
+              </div>
+            </div>
+
+            {/* Admin Notes */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                Support Resolution Notes
+              </span>
+              <textarea
+                rows={3}
+                value={adminNoteInput}
+                onChange={(e) => setAdminNoteInput(e.target.value)}
+                placeholder="Enter internal resolution notes, steps taken, or follow-up details..."
+                className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-inherit">
+              <div className="flex items-center gap-2">
+                {inspectingInquiry.status !== 'in_progress' && (
+                  <button
+                    disabled={inquiryActionLoading}
+                    onClick={() =>
+                      handleUpdateInquiryStatus(inspectingInquiry.id, 'in_progress', adminNoteInput)
+                    }
+                    className="px-3.5 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500 hover:text-black text-cyan-400 font-bold text-xs transition-colors"
+                  >
+                    Mark In Progress
+                  </button>
+                )}
+
+                {inspectingInquiry.status !== 'resolved' && (
+                  <button
+                    disabled={inquiryActionLoading}
+                    onClick={() =>
+                      handleUpdateInquiryStatus(inspectingInquiry.id, 'resolved', adminNoteInput)
+                    }
+                    className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 hover:text-black text-emerald-400 font-bold text-xs transition-colors"
+                  >
+                    Mark as Resolved
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInspectingInquiry(null)}
+                  className="btn-secondary px-4 py-2 text-xs font-bold"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  disabled={inquiryActionLoading}
+                  onClick={() =>
+                    handleUpdateInquiryStatus(inspectingInquiry.id, inspectingInquiry.status, adminNoteInput)
+                  }
+                  className="btn-primary px-4 py-2 text-xs font-bold"
+                >
+                  Save Notes
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

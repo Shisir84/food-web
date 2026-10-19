@@ -17,6 +17,7 @@ import { RestaurantDashboardView } from './views/RestaurantDashboardView.tsx';
 import { RestaurantPendingView } from './views/RestaurantPendingView.tsx';
 import { AdminDashboardView } from './views/AdminDashboardView.tsx';
 import { CustomerDashboardView } from './views/CustomerDashboardView.tsx';
+import { NovaChatbot } from './components/NovaChatbot.tsx';
 import {
   OffersView,
   AboutView,
@@ -183,45 +184,42 @@ function MainRouter() {
     }
 
     // 8. Admin Portal (Dedicated admin login & dashboard)
-    if (
-      currentPath === '/admin' ||
-      currentPath === '/admin/dashboard' ||
-      currentPath === '/admin/customers' ||
-      currentPath === '/admin/riders' ||
-      currentPath === '/admin/restaurants' ||
-      currentPath === '/admin/orders' ||
-      currentPath === '/admin/users' ||
-      currentPath === '/admin/appearance' ||
-      currentPath === '/admin/media' ||
-      currentPath === '/admin/logs' ||
-      currentPath === '/admin/security' ||
-      currentPath === '/admin/settings'
-    ) {
+    if (currentPath === '/admin' || currentPath.startsWith('/admin/') || currentPath.startsWith('/admin?')) {
+      if (currentPath === '/admin/login' || currentPath.startsWith('/admin/login')) {
+        if (user && user.role === 'admin') {
+          return <AdminDashboardView onNavigate={navigate} />;
+        }
+        return <AuthView portal="admin" mode="login" onNavigate={navigate} />;
+      }
+
       if (!user || user.role !== 'admin') {
         return <AuthView portal="admin" mode="login" onNavigate={navigate} />;
       }
       return <AdminDashboardView onNavigate={navigate} />;
     }
 
-    if (currentPath === '/admin/login') {
-      if (user && user.role === 'admin') {
-        return <AdminDashboardView onNavigate={navigate} />;
-      }
-      return <AuthView portal="admin" mode="login" onNavigate={navigate} />;
-    }
-
-    // 9. Customer Auth Routes
-    if (currentPath === '/login' || currentPath === '/customer/login') {
+    // 9. Customer Auth Routes (Supporting redirect query params e.g. /login?redirect=checkout)
+    if (
+      currentPath === '/login' ||
+      currentPath.startsWith('/login?') ||
+      currentPath === '/customer/login' ||
+      currentPath.startsWith('/customer/login?')
+    ) {
       return <AuthView portal="customer" mode="login" onNavigate={navigate} />;
     }
-    if (currentPath === '/register' || currentPath === '/customer/register') {
+    if (
+      currentPath === '/register' ||
+      currentPath.startsWith('/register?') ||
+      currentPath === '/customer/register' ||
+      currentPath.startsWith('/customer/register?')
+    ) {
       return <AuthView portal="customer" mode="register" onNavigate={navigate} />;
     }
 
     // 10. Static & Utility Pages
     if (currentPath === '/offers') return <OffersView onNavigate={navigate} />;
     if (currentPath === '/about') return <AboutView onNavigate={navigate} />;
-    if (currentPath === '/contact') return <ContactView />;
+    if (currentPath === '/contact' || currentPath.startsWith('/contact?')) return <ContactView />;
     if (currentPath === '/faq') return <FAQView />;
     if (currentPath === '/privacy') return <LegalView type="privacy" />;
     if (currentPath === '/terms') return <LegalView type="terms" />;
@@ -241,6 +239,8 @@ function MainRouter() {
       <Navbar currentPath={currentPath} onNavigate={navigate} />
       <main className="flex-1">{renderCurrentView()}</main>
       <Footer onNavigate={navigate} />
+      {/* Floating Nova AI Assistant */}
+      <NovaChatbot onNavigate={navigate} />
     </div>
   );
 }
