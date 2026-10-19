@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ThemeSettings } from '../types/index.ts';
+import { ThemeSettings, BackgroundConfig } from '../types/index.ts';
 import { api } from '../services/api.ts';
 
 export const THEME_PRESETS: { name: string; label: string; theme: ThemeSettings }[] = [
@@ -85,6 +85,8 @@ interface ThemeContextType {
   previewTheme: (newTheme: ThemeSettings) => void;
   saveTheme: (newTheme: ThemeSettings) => Promise<void>;
   resetDefault: () => Promise<void>;
+  toggleMode: () => Promise<void>;
+  getBackgroundStyle: (config?: BackgroundConfig) => React.CSSProperties;
   presets: typeof THEME_PRESETS;
   isLoading: boolean;
 }
@@ -101,6 +103,53 @@ function applyThemeVariables(t: ThemeSettings) {
   root.style.setProperty('--text-main', t.textMain);
   root.style.setProperty('--text-secondary', t.textSecondary);
   root.style.setProperty('--border-color', t.borderColor);
+
+  if (t.mode === 'light') {
+    root.classList.add('light-mode');
+    root.classList.remove('dark-mode');
+  } else {
+    root.classList.add('dark-mode');
+    root.classList.remove('light-mode');
+  }
+}
+
+export function getBackgroundStyle(config?: BackgroundConfig): React.CSSProperties {
+  if (!config) return {};
+
+  if (config.type === 'solid' && config.color) {
+    return {
+      backgroundColor: config.color,
+      opacity: config.opacity !== undefined ? config.opacity : 1,
+    };
+  }
+
+  if (config.type === 'gradient' && config.gradient) {
+    const { direction, from, via, to } = config.gradient;
+    let dir = '135deg';
+    if (direction === 'to-r') dir = 'to right';
+    if (direction === 'to-b') dir = 'to bottom';
+    if (direction === 'to-br') dir = 'to bottom right';
+    if (direction === 'to-bl') dir = 'to bottom left';
+
+    const stops = via ? `${from}, ${via}, ${to}` : `${from}, ${to}`;
+    return {
+      backgroundImage: `linear-gradient(${dir}, ${stops})`,
+      opacity: config.opacity !== undefined ? config.opacity : 1,
+    };
+  }
+
+  if (config.type === 'image' && config.imageUrl) {
+    return {
+      backgroundImage: `url(${config.imageUrl})`,
+      backgroundPosition: config.position || 'center',
+      backgroundSize: config.size || 'cover',
+      backgroundRepeat: config.repeat || 'no-repeat',
+      opacity: config.opacity !== undefined ? config.opacity : 1,
+      filter: config.blur ? `blur(${config.blur}px)` : undefined,
+    };
+  }
+
+  return {};
 }
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -149,8 +198,32 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetDefault = async () => {
-    const defaultTheme = THEME_PRESETS[0].theme;
-    await saveTheme(defaultTheme);
+    try {
+      const res = await api.resetAdminTheme();
+      setTheme(res.theme);
+      setSavedTheme(res.theme);
+      applyThemeVariables(res.theme);
+    } catch {
+      const defaultTheme = THEME_PRESETS[0].theme;
+      await saveTheme(defaultTheme);
+    }
+  };
+
+  const toggleMode = async () => {
+    const isDark = theme.mode !== 'light';
+    const nextMode = isDark ? 'light' : 'dark';
+    const matchedPreset = isDark ? THEME_PRESETS[4].theme : THEME_PRESETS[0].theme;
+    const newTheme: ThemeSettings = {
+      ...theme,
+      mode: nextMode,
+      bgPrimary: matchedPreset.bgPrimary,
+      bgSecondary: matchedPreset.bgSecondary,
+      bgCard: matchedPreset.bgCard,
+      textMain: matchedPreset.textMain,
+      textSecondary: matchedPreset.textSecondary,
+      borderColor: matchedPreset.borderColor,
+    };
+    await saveTheme(newTheme);
   };
 
   return (
@@ -160,6 +233,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         previewTheme,
         saveTheme,
         resetDefault,
+        toggleMode,
+        getBackgroundStyle,
         presets: THEME_PRESETS,
         isLoading,
       }}

@@ -10,6 +10,7 @@ import type {
   AdminAuditLog,
   NotificationItem,
   ThemeSettings,
+  MediaItem,
 } from '../src/types/index.ts';
 
 const DB_FILE = path.resolve(process.cwd(), 'data', 'database.json');
@@ -18,6 +19,7 @@ export interface DatabaseSchema {
   users: User[];
   passwords: Record<string, string>; // userId -> password (plain for local dev demo or salted)
   tokens: Record<string, string>; // token -> userId
+  tokenExpires?: Record<string, number>; // token -> expiry timestamp in ms
   riders: RiderProfile[];
   restaurants: RestaurantProfile[];
   foodItems: FoodItem[];
@@ -26,6 +28,7 @@ export interface DatabaseSchema {
   auditLogs: AdminAuditLog[];
   notifications: NotificationItem[];
   themeSettings: ThemeSettings;
+  mediaLibrary: MediaItem[];
 }
 
 const INITIAL_FOOD_IMAGES = {
@@ -708,6 +711,8 @@ function getInitialDatabase(): DatabaseSchema {
       borderColor: '#2B2B30',
       presetName: 'Midnight Orange',
     },
+    tokenExpires: {},
+    mediaLibrary: [],
   };
 }
 
@@ -723,6 +728,8 @@ class Database {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
+        let modified = false;
+
         if (!parsed.themeSettings) {
           parsed.themeSettings = {
             bgPrimary: '#0B0B0D',
@@ -735,8 +742,275 @@ class Database {
             borderColor: '#2B2B30',
             presetName: 'Midnight Orange',
           };
+          modified = true;
+        }
+
+        if (!parsed.mediaLibrary) {
+          parsed.mediaLibrary = [];
+          modified = true;
+        }
+
+        if (!parsed.tokenExpires) {
+          parsed.tokenExpires = {};
+          modified = true;
+        }
+
+        // Support both admin@novahunger.com and shisirtharu17@gmail.com
+        if (!parsed.users.some((u: any) => u.email.toLowerCase() === 'shisirtharu17@gmail.com')) {
+          parsed.users.push({
+            id: 'usr_admin_owner',
+            name: 'Shisir Tharu (Admin)',
+            email: 'shisirtharu17@gmail.com',
+            role: 'admin',
+            phone: '+1 (555) 019-9000',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            status: 'active',
+          });
+          parsed.passwords['usr_admin_owner'] = 'admin123';
+          modified = true;
+        }
+
+        // Ensure rich realistic customers for admin roster, filtering, and charts
+        const seedCustomers = [
+          {
+            id: 'usr_customer_2',
+            name: 'Sophia Martinez',
+            email: 'sophia.m@example.com',
+            role: 'customer',
+            phone: '+1 (555) 012-3849',
+            createdAt: '2026-06-14T09:30:00.000Z',
+            status: 'active',
+            savedAddresses: [
+              {
+                id: 'addr_c2_1',
+                label: 'Loft Residence',
+                street: '512 Skyline Ave, Apt 12C',
+                city: 'Metropolis',
+                postalCode: '10003',
+                deliveryInstructions: 'Keycode 8842 on gate panel.',
+                isDefault: true,
+              },
+            ],
+          },
+          {
+            id: 'usr_customer_3',
+            name: 'Liam Chen',
+            email: 'liam.chen@techfirm.io',
+            role: 'customer',
+            phone: '+1 (555) 018-9921',
+            createdAt: '2026-07-22T14:15:00.000Z',
+            status: 'active',
+            savedAddresses: [
+              {
+                id: 'addr_c3_1',
+                label: 'Tech Hub Office',
+                street: '88 Innovation Way, Suite 400',
+                city: 'Metropolis',
+                postalCode: '10005',
+                deliveryInstructions: 'Deliver to 4th floor reception desk.',
+                isDefault: true,
+              },
+            ],
+          },
+          {
+            id: 'usr_customer_4',
+            name: 'Zara Al-Mansoor',
+            email: 'zara.mansoor@designco.net',
+            role: 'customer',
+            phone: '+1 (555) 019-7734',
+            createdAt: '2026-08-05T18:45:00.000Z',
+            status: 'active',
+            savedAddresses: [
+              {
+                id: 'addr_c4_1',
+                label: 'Townhouse',
+                street: '230 Heritage Row',
+                city: 'Metropolis',
+                postalCode: '10007',
+                deliveryInstructions: 'Leave on front porch behind planter.',
+                isDefault: true,
+              },
+            ],
+          },
+          {
+            id: 'usr_customer_5',
+            name: 'Ethan Gallagher',
+            email: 'ethan.g@domain.org',
+            role: 'customer',
+            phone: '+1 (555) 013-6620',
+            createdAt: '2026-09-02T10:00:00.000Z',
+            status: 'inactive',
+            savedAddresses: [
+              {
+                id: 'addr_c5_1',
+                label: 'Home',
+                street: '904 Riverwalk Lane',
+                city: 'Metropolis',
+                postalCode: '10009',
+                deliveryInstructions: 'Ring doorbell twice.',
+                isDefault: true,
+              },
+            ],
+          },
+          {
+            id: 'usr_customer_6',
+            name: 'Maya Patel',
+            email: 'maya.patel@biomed.edu',
+            role: 'customer',
+            phone: '+1 (555) 016-5511',
+            createdAt: '2026-10-01T16:20:00.000Z',
+            status: 'active',
+            savedAddresses: [
+              {
+                id: 'addr_c6_1',
+                label: 'Campus Dorm',
+                street: '400 University Blvd, Hall B',
+                city: 'Metropolis',
+                postalCode: '10012',
+                deliveryInstructions: 'Call cell phone when in lobby.',
+                isDefault: true,
+              },
+            ],
+          },
+          {
+            id: 'usr_customer_7',
+            name: 'Derrick Vance',
+            email: 'derrick.v@flaggedaccount.com',
+            role: 'customer',
+            phone: '+1 (555) 011-9044',
+            createdAt: '2026-05-18T11:00:00.000Z',
+            status: 'suspended',
+            savedAddresses: [
+              {
+                id: 'addr_c7_1',
+                label: 'Apartment',
+                street: '15 Harbor View Road',
+                city: 'Metropolis',
+                postalCode: '10014',
+                deliveryInstructions: 'Suspended account.',
+                isDefault: true,
+              },
+            ],
+          },
+        ];
+
+        for (const cust of seedCustomers) {
+          if (!parsed.users.some((u: any) => u.id === cust.id || u.email.toLowerCase() === cust.email.toLowerCase())) {
+            parsed.users.push(cust);
+            parsed.passwords[cust.id] = 'customer123';
+            modified = true;
+          }
+        }
+
+        // Add sample completed orders for new customers so spend and order counts are realistic
+        if (!parsed.orders.some((o: any) => o.customerId === 'usr_customer_2')) {
+          parsed.orders.push({
+            id: 'ord_1004',
+            orderNumber: 'NV-9102',
+            customerId: 'usr_customer_2',
+            customerName: 'Sophia Martinez',
+            customerPhone: '+1 (555) 012-3849',
+            restaurantId: 'rest_2',
+            restaurantName: 'Saffron & Spice Royal Kitchen',
+            restaurantAddress: '15 Heritage Square, Central',
+            riderId: 'rider_1',
+            riderName: 'Alex Mercer',
+            riderPhone: '+1 (555) 017-3392',
+            items: [
+              {
+                foodId: 'food_5',
+                name: 'Awadhi Shahi Chicken Dum Biryani',
+                unitPrice: 22,
+                quantity: 2,
+                subtotal: 44,
+                isVeg: false,
+              },
+            ],
+            subtotal: 44,
+            deliveryFee: 4,
+            discount: 0,
+            tax: 3.5,
+            total: 51.5,
+            paymentMethod: 'card_online',
+            paymentStatus: 'paid',
+            deliveryAddress: {
+              id: 'addr_c2_1',
+              label: 'Loft Residence',
+              street: '512 Skyline Ave, Apt 12C',
+              city: 'Metropolis',
+              postalCode: '10003',
+            },
+            status: 'delivered',
+            statusHistory: [
+              { status: 'placed', timestamp: '2026-10-10T12:00:00.000Z', note: 'Order placed' },
+              { status: 'delivered', timestamp: '2026-10-10T12:45:00.000Z', note: 'Delivered' },
+            ],
+            placedAt: '2026-10-10T12:00:00.000Z',
+            deliveredAt: '2026-10-10T12:45:00.000Z',
+          });
+          modified = true;
+        }
+
+        if (!parsed.orders.some((o: any) => o.customerId === 'usr_customer_3')) {
+          parsed.orders.push({
+            id: 'ord_1003',
+            orderNumber: 'NV-9103',
+            customerId: 'usr_customer_3',
+            customerName: 'Liam Chen',
+            customerPhone: '+1 (555) 018-9921',
+            restaurantId: 'rest_3',
+            restaurantName: 'The Himalayan Steamer & Momo Lounge',
+            restaurantAddress: '88 Summit Heights, Uptown',
+            riderId: 'rider_2',
+            riderName: 'David Vance',
+            riderPhone: '+1 (555) 019-4411',
+            items: [
+              {
+                foodId: 'food_7',
+                name: 'Classic Steamed Chicken Momos (10 Pcs)',
+                unitPrice: 14,
+                quantity: 3,
+                subtotal: 42,
+                isVeg: false,
+              },
+            ],
+            subtotal: 42,
+            deliveryFee: 3.5,
+            discount: 5,
+            couponCode: 'FOODIE10',
+            tax: 3,
+            total: 43.5,
+            paymentMethod: 'card_online',
+            paymentStatus: 'paid',
+            deliveryAddress: {
+              id: 'addr_c3_1',
+              label: 'Tech Hub Office',
+              street: '88 Innovation Way, Suite 400',
+              city: 'Metropolis',
+              postalCode: '10005',
+            },
+            status: 'delivered',
+            statusHistory: [
+              { status: 'placed', timestamp: '2026-10-12T19:00:00.000Z', note: 'Order placed' },
+              { status: 'delivered', timestamp: '2026-10-12T19:40:00.000Z', note: 'Delivered' },
+            ],
+            placedAt: '2026-10-12T19:00:00.000Z',
+            deliveredAt: '2026-10-12T19:40:00.000Z',
+          });
+          modified = true;
+        }
+
+        parsed.users.forEach((u: any) => {
+          if (!u.status) {
+            u.status = 'active';
+            modified = true;
+          }
+        });
+
+        if (modified) {
           this.save(parsed);
         }
+
         return parsed;
       }
     } catch (e) {

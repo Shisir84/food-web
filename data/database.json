@@ -6,7 +6,8 @@
       "email": "admin@novahunger.com",
       "role": "admin",
       "phone": "+1 (555) 019-9000",
-      "createdAt": "2026-01-01T00:00:00.000Z"
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_customer_1",
@@ -34,7 +35,8 @@
           "deliveryInstructions": "Call upon arrival at security desk.",
           "isDefault": false
         }
-      ]
+      ],
+      "status": "active"
     },
     {
       "id": "usr_rider_1",
@@ -42,7 +44,8 @@
       "email": "rider.alex@novahunger.com",
       "role": "rider",
       "phone": "+1 (555) 017-3392",
-      "createdAt": "2026-03-01T09:15:00.000Z"
+      "createdAt": "2026-03-01T09:15:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_rider_2",
@@ -50,7 +53,8 @@
       "email": "rider.david@novahunger.com",
       "role": "rider",
       "phone": "+1 (555) 019-4411",
-      "createdAt": "2026-04-12T14:30:00.000Z"
+      "createdAt": "2026-04-12T14:30:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_rider_3",
@@ -58,7 +62,8 @@
       "email": "rider.brody@novahunger.com",
       "role": "rider",
       "phone": "+1 (555) 018-8822",
-      "createdAt": "2026-04-10T08:00:00.000Z"
+      "createdAt": "2026-04-10T08:00:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_rest_1",
@@ -66,7 +71,8 @@
       "email": "owner.flame@novahunger.com",
       "role": "restaurant",
       "phone": "+1 (555) 011-2299",
-      "createdAt": "2026-01-15T10:00:00.000Z"
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_rest_2",
@@ -74,7 +80,8 @@
       "email": "owner.saffron@novahunger.com",
       "role": "restaurant",
       "phone": "+1 (555) 013-5588",
-      "createdAt": "2026-01-20T10:00:00.000Z"
+      "createdAt": "2026-01-20T10:00:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_rest_3",
@@ -82,7 +89,8 @@
       "email": "owner.himalayan@novahunger.com",
       "role": "restaurant",
       "phone": "+1 (555) 016-7733",
-      "createdAt": "2026-02-05T12:00:00.000Z"
+      "createdAt": "2026-02-05T12:00:00.000Z",
+      "status": "active"
     },
     {
       "id": "usr_rest_pending",
@@ -90,7 +98,157 @@
       "email": "owner.bamboo@novahunger.com",
       "role": "restaurant",
       "phone": "+1 (555) 019-1144",
-      "createdAt": "2026-04-15T16:00:00.000Z"
+      "createdAt": "2026-04-15T16:00:00.000Z",
+      "status": "active"
+    },
+    {
+      "id": "usr_rider_1792378860162",
+      "name": "test",
+      "email": "test@gmail.com",
+      "role": "rider",
+      "phone": "test",
+      "createdAt": "2026-10-19T03:01:00.162Z",
+      "savedAddresses": [],
+      "status": "active"
+    },
+    {
+      "id": "usr_admin_owner",
+      "name": "Shisir Tharu (Admin)",
+      "email": "shisirtharu17@gmail.com",
+      "role": "admin",
+      "phone": "+1 (555) 019-9000",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "status": "active"
+    },
+    {
+      "id": "usr_admin_1792381056649",
+      "name": "suraj",
+      "email": "shisirtharu51@gmail.com",
+      "role": "admin",
+      "phone": "",
+      "status": "active",
+      "createdAt": "2026-10-19T03:37:36.649Z",
+      "savedAddresses": []
+    },
+    {
+      "id": "usr_customer_2",
+      "name": "Sophia Martinez",
+      "email": "sophia.m@example.com",
+      "role": "customer",
+      "phone": "+1 (555) 012-3849",
+      "createdAt": "2026-06-14T09:30:00.000Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "id": "addr_c2_1",
+          "label": "Loft Residence",
+          "street": "512 Skyline Ave, Apt 12C",
+          "city": "Metropolis",
+          "postalCode": "10003",
+          "deliveryInstructions": "Keycode 8842 on gate panel.",
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": "usr_customer_3",
+      "name": "Liam Chen",
+      "email": "liam.chen@techfirm.io",
+      "role": "customer",
+      "phone": "+1 (555) 018-9921",
+      "createdAt": "2026-07-22T14:15:00.000Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "id": "addr_c3_1",
+          "label": "Tech Hub Office",
+          "street": "88 Innovation Way, Suite 400",
+          "city": "Metropolis",
+          "postalCode": "10005",
+          "deliveryInstructions": "Deliver to 4th floor reception desk.",
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": "usr_customer_4",
+      "name": "Zara Al-Mansoor",
+      "email": "zara.mansoor@designco.net",
+      "role": "customer",
+      "phone": "+1 (555) 019-7734",
+      "createdAt": "2026-08-05T18:45:00.000Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "id": "addr_c4_1",
+          "label": "Townhouse",
+          "street": "230 Heritage Row",
+          "city": "Metropolis",
+          "postalCode": "10007",
+          "deliveryInstructions": "Leave on front porch behind planter.",
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": "usr_customer_5",
+      "name": "Ethan Gallagher",
+      "email": "ethan.g@domain.org",
+      "role": "customer",
+      "phone": "+1 (555) 013-6620",
+      "createdAt": "2026-09-02T10:00:00.000Z",
+      "status": "inactive",
+      "savedAddresses": [
+        {
+          "id": "addr_c5_1",
+          "label": "Home",
+          "street": "904 Riverwalk Lane",
+          "city": "Metropolis",
+          "postalCode": "10009",
+          "deliveryInstructions": "Ring doorbell twice.",
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": "usr_customer_6",
+      "name": "Maya Patel",
+      "email": "maya.patel@biomed.edu",
+      "role": "customer",
+      "phone": "+1 (555) 016-5511",
+      "createdAt": "2026-10-01T16:20:00.000Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "id": "addr_c6_1",
+          "label": "Campus Dorm",
+          "street": "400 University Blvd, Hall B",
+          "city": "Metropolis",
+          "postalCode": "10012",
+          "deliveryInstructions": "Call cell phone when in lobby.",
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": "usr_customer_7",
+      "name": "Derrick Vance",
+      "email": "derrick.v@flaggedaccount.com",
+      "role": "customer",
+      "phone": "+1 (555) 011-9044",
+      "createdAt": "2026-05-18T11:00:00.000Z",
+      "status": "suspended",
+      "savedAddresses": [
+        {
+          "id": "addr_c7_1",
+          "label": "Apartment",
+          "street": "15 Harbor View Road",
+          "city": "Metropolis",
+          "postalCode": "10014",
+          "deliveryInstructions": "Suspended account.",
+          "isDefault": true
+        }
+      ]
     }
   ],
   "passwords": {
@@ -102,7 +260,16 @@
     "usr_rest_1": "pass123",
     "usr_rest_2": "pass123",
     "usr_rest_3": "pass123",
-    "usr_rest_pending": "pass123"
+    "usr_rest_pending": "pass123",
+    "usr_rider_1792378860162": "test",
+    "usr_admin_owner": "admin123",
+    "usr_admin_1792381056649": "stharu@098",
+    "usr_customer_2": "customer123",
+    "usr_customer_3": "customer123",
+    "usr_customer_4": "customer123",
+    "usr_customer_5": "customer123",
+    "usr_customer_6": "customer123",
+    "usr_customer_7": "customer123"
   },
   "tokens": {
     "token_admin_seed": "usr_admin",
@@ -114,7 +281,20 @@
     "tok_admin_1792317101826_25vdg6b": "usr_admin",
     "tok_customer_1792318725468_u9b3jwn": "usr_customer_1",
     "tok_admin_1792318728820_0a3h9se": "usr_admin",
-    "tok_admin_1792326290655_bgp2pcp": "usr_admin"
+    "tok_admin_1792326290655_bgp2pcp": "usr_admin",
+    "tok_rider_1792378860163_xed9fee": "usr_rider_1792378860162",
+    "tok_admin_1792379877924_re5l69q": "usr_admin",
+    "tok_admin_1792379880881_98tutjz": "usr_admin_owner",
+    "tok_admin_1792379884171_lvaz8u7": "usr_admin",
+    "tok_admin_1792379937473_93zeqq4": "usr_admin",
+    "tok_admin_1792379945526_w0zlrlm": "usr_admin",
+    "tok_admin_1792379948915_bxoooe0": "usr_admin",
+    "tok_admin_1792379965476_uaizqai": "usr_admin",
+    "tok_admin_1792379971583_5w4bab4": "usr_admin",
+    "tok_admin_1792379975571_ky8l89b": "usr_admin",
+    "tok_admin_1792379979754_tyleouk": "usr_admin",
+    "tok_admin_1792380757564_rpm263g": "usr_admin",
+    "tok_admin_1792381851159_up3wmuq": "usr_admin"
   },
   "riders": [
     {
@@ -130,7 +310,7 @@
       "licenseNumber": "DL-NV-992019",
       "idDocumentUrl": "/docs/rider_alex_license.pdf",
       "status": "approved",
-      "isOnline": true,
+      "isOnline": false,
       "approvedBy": "usr_admin",
       "approvedAt": "2026-03-02T11:00:00.000Z",
       "rating": 4.95,
@@ -182,6 +362,28 @@
       "todayEarnings": 0,
       "weekEarnings": 0,
       "createdAt": "2026-04-10T08:00:00.000Z"
+    },
+    {
+      "id": "rider_1792378860164",
+      "userId": "usr_rider_1792378860162",
+      "fullName": "test",
+      "email": "test@gmail.com",
+      "phone": "test",
+      "vehicleType": "motorcycle",
+      "vehicleRegNumber": "test",
+      "city": "Metropolis",
+      "deliveryArea": "Central & Downtown",
+      "licenseNumber": "test",
+      "idDocumentUrl": "/docs/rider_upload.pdf",
+      "status": "approved",
+      "isOnline": true,
+      "rating": 5,
+      "totalDeliveries": 0,
+      "todayEarnings": 0,
+      "weekEarnings": 0,
+      "createdAt": "2026-10-19T03:01:00.164Z",
+      "approvedBy": "usr_admin",
+      "approvedAt": "2026-10-19T03:01:26.145Z"
     }
   ],
   "restaurants": [
@@ -282,8 +484,8 @@
       "openingHours": "12:00 PM - 10:30 PM",
       "deliveryTimeEstimate": "25-35 min",
       "minOrder": 15,
-      "status": "pending",
-      "isAvailable": false,
+      "status": "approved",
+      "isAvailable": true,
       "totalOrders": 0,
       "totalRevenue": 0,
       "cuisineTypes": [
@@ -645,6 +847,111 @@
       ],
       "createdAt": "2026-10-17T18:10:00.000Z",
       "updatedAt": "2026-10-17T19:05:00.000Z"
+    },
+    {
+      "id": "ord_1004",
+      "orderNumber": "NV-9102",
+      "customerId": "usr_customer_2",
+      "customerName": "Sophia Martinez",
+      "customerPhone": "+1 (555) 012-3849",
+      "restaurantId": "rest_2",
+      "restaurantName": "Saffron & Spice Royal Kitchen",
+      "restaurantAddress": "15 Heritage Square, Central",
+      "riderId": "rider_1",
+      "riderName": "Alex Mercer",
+      "riderPhone": "+1 (555) 017-3392",
+      "items": [
+        {
+          "foodId": "food_5",
+          "name": "Awadhi Shahi Chicken Dum Biryani",
+          "unitPrice": 22,
+          "quantity": 2,
+          "subtotal": 44,
+          "isVeg": false
+        }
+      ],
+      "subtotal": 44,
+      "deliveryFee": 4,
+      "discount": 0,
+      "tax": 3.5,
+      "total": 51.5,
+      "paymentMethod": "card_online",
+      "paymentStatus": "paid",
+      "deliveryAddress": {
+        "id": "addr_c2_1",
+        "label": "Loft Residence",
+        "street": "512 Skyline Ave, Apt 12C",
+        "city": "Metropolis",
+        "postalCode": "10003"
+      },
+      "status": "delivered",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-10T12:00:00.000Z",
+          "note": "Order placed"
+        },
+        {
+          "status": "delivered",
+          "timestamp": "2026-10-10T12:45:00.000Z",
+          "note": "Delivered"
+        }
+      ],
+      "placedAt": "2026-10-10T12:00:00.000Z",
+      "deliveredAt": "2026-10-10T12:45:00.000Z"
+    },
+    {
+      "id": "ord_1003",
+      "orderNumber": "NV-9103",
+      "customerId": "usr_customer_3",
+      "customerName": "Liam Chen",
+      "customerPhone": "+1 (555) 018-9921",
+      "restaurantId": "rest_3",
+      "restaurantName": "The Himalayan Steamer & Momo Lounge",
+      "restaurantAddress": "88 Summit Heights, Uptown",
+      "riderId": "rider_2",
+      "riderName": "David Vance",
+      "riderPhone": "+1 (555) 019-4411",
+      "items": [
+        {
+          "foodId": "food_7",
+          "name": "Classic Steamed Chicken Momos (10 Pcs)",
+          "unitPrice": 14,
+          "quantity": 3,
+          "subtotal": 42,
+          "isVeg": false
+        }
+      ],
+      "subtotal": 42,
+      "deliveryFee": 3.5,
+      "discount": 5,
+      "couponCode": "FOODIE10",
+      "tax": 3,
+      "total": 43.5,
+      "paymentMethod": "card_online",
+      "paymentStatus": "paid",
+      "deliveryAddress": {
+        "id": "addr_c3_1",
+        "label": "Tech Hub Office",
+        "street": "88 Innovation Way, Suite 400",
+        "city": "Metropolis",
+        "postalCode": "10005"
+      },
+      "status": "delivered",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-12T19:00:00.000Z",
+          "note": "Order placed"
+        },
+        {
+          "status": "delivered",
+          "timestamp": "2026-10-12T19:40:00.000Z",
+          "note": "Delivered"
+        }
+      ],
+      "placedAt": "2026-10-12T19:00:00.000Z",
+      "deliveredAt": "2026-10-12T19:40:00.000Z"
     }
   ],
   "coupons": [
@@ -690,6 +997,356 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1792381851160",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:50:51 AM).",
+      "timestamp": "2026-10-19T03:50:51.167Z"
+    },
+    {
+      "id": "log_1792381194654",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPLOAD_MEDIA_ASSET",
+      "targetType": "settings",
+      "targetId": "med_1792381194654_j34yl",
+      "details": "Uploaded media 'download.jpg' (147.0 KB, category: background).",
+      "timestamp": "2026-10-19T03:39:54.654Z"
+    },
+    {
+      "id": "log_1792381174966",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Purple Neon, Dashboard BG: image, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:39:34.966Z"
+    },
+    {
+      "id": "log_1792381097515",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Purple Neon, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:38:17.515Z"
+    },
+    {
+      "id": "log_1792381089726",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Midnight Orange, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:38:09.726Z"
+    },
+    {
+      "id": "log_1792381056650",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "CREATE_INTERNAL_USER_ADMIN",
+      "targetType": "user",
+      "targetId": "usr_admin_1792381056649",
+      "details": "Admin created admin account for suraj (shisirtharu51@gmail.com).",
+      "timestamp": "2026-10-19T03:37:36.650Z"
+    },
+    {
+      "id": "log_1792381008236",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "APPROVE_RESTAURANT",
+      "targetType": "restaurant",
+      "targetId": "rest_4",
+      "details": "Approved restaurant Himalayan Momo & Steams.",
+      "timestamp": "2026-10-19T03:36:48.236Z"
+    },
+    {
+      "id": "log_1792380954604",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Midnight Orange, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:35:54.604Z"
+    },
+    {
+      "id": "log_1792380950664",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Midnight Orange, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:35:50.664Z"
+    },
+    {
+      "id": "log_1792380949797",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Midnight Orange, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:35:49.797Z"
+    },
+    {
+      "id": "log_1792380949404",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Midnight Orange, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:35:49.404Z"
+    },
+    {
+      "id": "log_1792380947841",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_THEME_APPEARANCE",
+      "targetType": "settings",
+      "targetId": "theme",
+      "details": "Administrator updated appearance & background settings (Preset: Midnight Orange, Dashboard BG: solid, Login BG: gradient).",
+      "timestamp": "2026-10-19T03:35:47.841Z"
+    },
+    {
+      "id": "log_1792380913350",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_CUSTOMER_ACCOUNT",
+      "targetType": "user",
+      "targetId": "usr_customer_7",
+      "details": "Customer account deleted for Derrick Vance (derrick.v@flaggedaccount.com).",
+      "timestamp": "2026-10-19T03:35:13.350Z"
+    },
+    {
+      "id": "log_1792380909905",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_CUSTOMER_ACCOUNT",
+      "targetType": "user",
+      "targetId": "usr_customer_2",
+      "details": "Customer account deleted for Sophia Martinez (sophia.m@example.com).",
+      "timestamp": "2026-10-19T03:35:09.905Z"
+    },
+    {
+      "id": "log_1792380906890",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_CUSTOMER_ACCOUNT",
+      "targetType": "user",
+      "targetId": "usr_customer_4",
+      "details": "Customer account deleted for Zara Al-Mansoor (zara.mansoor@designco.net).",
+      "timestamp": "2026-10-19T03:35:06.890Z"
+    },
+    {
+      "id": "log_1792380905012",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_CUSTOMER_ACCOUNT",
+      "targetType": "user",
+      "targetId": "usr_customer_3",
+      "details": "Customer account deleted for Liam Chen (liam.chen@techfirm.io).",
+      "timestamp": "2026-10-19T03:35:05.012Z"
+    },
+    {
+      "id": "log_1792380902567",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_CUSTOMER_ACCOUNT",
+      "targetType": "user",
+      "targetId": "usr_customer_5",
+      "details": "Customer account deleted for Ethan Gallagher (ethan.g@domain.org).",
+      "timestamp": "2026-10-19T03:35:02.567Z"
+    },
+    {
+      "id": "log_1792380899893",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_CUSTOMER_ACCOUNT",
+      "targetType": "user",
+      "targetId": "usr_customer_6",
+      "details": "Customer account deleted for Maya Patel (maya.patel@biomed.edu).",
+      "timestamp": "2026-10-19T03:34:59.893Z"
+    },
+    {
+      "id": "log_1792380757566",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 11/18/2026, 3:32:37 AM).",
+      "timestamp": "2026-10-19T03:32:37.573Z"
+    },
+    {
+      "id": "log_1792379979776",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "DELETE_MEDIA_ASSET",
+      "targetType": "settings",
+      "targetId": "med_1792379975592_4u67b",
+      "details": "Deleted media file 'banner_test.png'.",
+      "timestamp": "2026-10-19T03:19:39.776Z"
+    },
+    {
+      "id": "log_1792379979755",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:19:39 AM).",
+      "timestamp": "2026-10-19T03:19:39.755Z"
+    },
+    {
+      "id": "log_1792379975593",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPLOAD_MEDIA_ASSET",
+      "targetType": "settings",
+      "targetId": "med_1792379975592_4u67b",
+      "details": "Uploaded media 'banner_test.png' (0.1 KB, category: background).",
+      "timestamp": "2026-10-19T03:19:35.593Z"
+    },
+    {
+      "id": "log_1792379975572",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:19:35 AM).",
+      "timestamp": "2026-10-19T03:19:35.572Z"
+    },
+    {
+      "id": "log_1792379971584",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:19:31 AM).",
+      "timestamp": "2026-10-19T03:19:31.591Z"
+    },
+    {
+      "id": "log_1792379965477",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:19:25 AM).",
+      "timestamp": "2026-10-19T03:19:25.477Z"
+    },
+    {
+      "id": "log_1792379948916",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:19:08 AM).",
+      "timestamp": "2026-10-19T03:19:08.916Z"
+    },
+    {
+      "id": "log_1792379945547",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "SET_CUSTOMER_STATUS_ACTIVE",
+      "targetType": "user",
+      "targetId": "usr_customer_5",
+      "details": "Customer Ethan Gallagher status updated to 'active'. Reason: Customer completed verification",
+      "timestamp": "2026-10-19T03:19:05.547Z"
+    },
+    {
+      "id": "log_1792379945527",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:19:05 AM).",
+      "timestamp": "2026-10-19T03:19:05.527Z"
+    },
+    {
+      "id": "log_1792379937474",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:18:57 AM).",
+      "timestamp": "2026-10-19T03:18:57.480Z"
+    },
+    {
+      "id": "log_1792379884172",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:18:04 AM).",
+      "timestamp": "2026-10-19T03:18:04.172Z"
+    },
+    {
+      "id": "log_1792379880882",
+      "adminId": "usr_admin_owner",
+      "adminEmail": "shisirtharu17@gmail.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin_owner",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/20/2026, 3:18:00 AM).",
+      "timestamp": "2026-10-19T03:18:00.882Z"
+    },
+    {
+      "id": "log_1792379877925",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 11/18/2026, 3:17:57 AM).",
+      "timestamp": "2026-10-19T03:17:57.932Z"
+    },
+    {
+      "id": "log_1792378886146",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "APPROVE_RIDER",
+      "targetType": "rider",
+      "targetId": "rider_1792378860164",
+      "details": "Administrator approved rider test (test@gmail.com).",
+      "timestamp": "2026-10-19T03:01:26.146Z"
+    },
+    {
+      "id": "log_1792378824346",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "REACTIVATE_RIDER",
+      "targetType": "rider",
+      "targetId": "rider_1",
+      "details": "Reactivated rider Alex Mercer.",
+      "timestamp": "2026-10-19T03:00:24.346Z"
+    },
+    {
+      "id": "log_1792378822353",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "SUSPEND_RIDER",
+      "targetType": "rider",
+      "targetId": "rider_1",
+      "details": "Suspended rider Alex Mercer.",
+      "timestamp": "2026-10-19T03:00:22.353Z"
+    },
     {
       "id": "log_1792323664228",
       "adminId": "system",
@@ -739,9 +1396,29 @@
       "targetId": "rest_1",
       "details": "Approved restaurant Flame & Crust Artisan Pizzeria for food delivery operations.",
       "timestamp": "2026-01-16T09:00:00.000Z"
+    },
+    {
+      "id": "log_1792378860164",
+      "adminId": "system",
+      "adminEmail": "system@novahunger.com",
+      "action": "RIDER_APPLICATION_SUBMITTED",
+      "targetType": "rider",
+      "targetId": "rider_1792378860164",
+      "details": "New rider application submitted by test (Metropolis) for review.",
+      "timestamp": "2026-10-19T03:01:00.164Z"
     }
   ],
   "notifications": [
+    {
+      "id": "notif_1792378886146",
+      "userId": "usr_rider_1792378860162",
+      "title": "Congratulations! Application Approved 🎉",
+      "message": "Your Nova Hunger Food rider account has been approved. You can now go online and accept delivery orders.",
+      "type": "rider_status",
+      "isRead": false,
+      "link": "/rider/dashboard",
+      "createdAt": "2026-10-19T03:01:26.146Z"
+    },
     {
       "id": "notif_1792317117951",
       "userId": "usr_rider_2",
@@ -774,14 +1451,55 @@
     }
   ],
   "themeSettings": {
-    "bgPrimary": "#0B0B0D",
-    "bgSecondary": "#151518",
-    "bgCard": "#151518",
-    "accentPrimary": "#FF7900",
-    "accentHighlight": "#FF9D00",
+    "bgPrimary": "#0F0A1A",
+    "bgSecondary": "#1A122B",
+    "bgCard": "#24193D",
+    "accentPrimary": "#8B5CF6",
+    "accentHighlight": "#C084FC",
     "textMain": "#FFFFFF",
-    "textSecondary": "#B8B8C0",
-    "borderColor": "#2B2B30",
-    "presetName": "Midnight Orange"
+    "textSecondary": "#A78BFA",
+    "borderColor": "#2E1F4D",
+    "presetName": "Purple Neon",
+    "mode": "dark",
+    "dashboardBackground": {
+      "type": "image",
+      "imageUrl": "https://kommodo.ai/i/BZzEbfHASTaJdeDVCzMK"
+    },
+    "loginBackground": {
+      "type": "gradient",
+      "gradient": {
+        "direction": "to-br",
+        "from": "#4646dd",
+        "to": "#0a061e"
+      }
+    },
+    "appName": "Nova Hunger Food"
+  },
+  "mediaLibrary": [
+    {
+      "id": "med_1792381194654_j34yl",
+      "fileName": "upload_1792381194653_download.jpg",
+      "originalName": "download.jpg",
+      "fileSize": 150527,
+      "mimeType": "image/jpeg",
+      "url": "/uploads/upload_1792381194653_download.jpg",
+      "category": "background",
+      "uploadedBy": "Nova Master Admin",
+      "uploadedAt": "2026-10-19T03:39:54.654Z"
+    }
+  ],
+  "tokenExpires": {
+    "tok_admin_1792379877924_re5l69q": 1794971877924,
+    "tok_admin_1792379880881_98tutjz": 1792466280882,
+    "tok_admin_1792379884171_lvaz8u7": 1792466284171,
+    "tok_admin_1792379937473_93zeqq4": 1792466337474,
+    "tok_admin_1792379945526_w0zlrlm": 1792466345527,
+    "tok_admin_1792379948915_bxoooe0": 1792466348916,
+    "tok_admin_1792379965476_uaizqai": 1792466365476,
+    "tok_admin_1792379971583_5w4bab4": 1792466371584,
+    "tok_admin_1792379975571_ky8l89b": 1792466375572,
+    "tok_admin_1792379979754_tyleouk": 1792466379755,
+    "tok_admin_1792380757564_rpm263g": 1794972757566,
+    "tok_admin_1792381851159_up3wmuq": 1792468251160
   }
 }

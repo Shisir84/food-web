@@ -7,7 +7,7 @@ interface AuthContextType {
   riderProfile: RiderProfile | null;
   restaurantProfile: RestaurantProfile | null;
   isLoading: boolean;
-  login: (email: string, password: string, portal?: string) => Promise<any>;
+  login: (email: string, password: string, portal?: string, rememberMe?: boolean) => Promise<any>;
   register: (payload: any) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -48,10 +48,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUser();
   }, []);
 
-  const login = async (email: string, password: string, portal?: string) => {
+  const login = async (email: string, password: string, portal?: string, rememberMe?: boolean) => {
     setIsLoading(true);
     try {
-      const res = await api.login({ email, password, portal });
+      const res = await api.login({ email, password, portal, rememberMe });
       setUser(res.user);
       setRiderProfile(res.riderProfile || null);
       setRestaurantProfile(res.restaurantProfile || null);

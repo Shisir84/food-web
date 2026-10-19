@@ -24,6 +24,7 @@ export interface User {
   avatarUrl?: string;
   createdAt: string;
   savedAddresses?: Address[];
+  status?: 'active' | 'inactive' | 'suspended';
 }
 
 export interface Address {
@@ -214,6 +215,24 @@ export interface NotificationItem {
   createdAt: string;
 }
 
+export interface BackgroundConfig {
+  type: 'solid' | 'gradient' | 'image';
+  color?: string;
+  gradient?: {
+    direction: 'to-r' | 'to-br' | 'to-b' | 'to-bl' | 'radial';
+    from: string;
+    via?: string;
+    to: string;
+  };
+  imageUrl?: string;
+  position?: 'center' | 'top' | 'bottom';
+  size?: 'cover' | 'contain' | 'auto';
+  repeat?: 'no-repeat' | 'repeat';
+  opacity?: number;
+  overlayColor?: string;
+  blur?: number;
+}
+
 export interface ThemeSettings {
   bgPrimary: string;
   bgSecondary: string;
@@ -224,4 +243,40 @@ export interface ThemeSettings {
   textSecondary: string;
   borderColor: string;
   presetName?: string;
+  mode?: 'dark' | 'light';
+  dashboardBackground?: BackgroundConfig;
+  loginBackground?: BackgroundConfig;
+  logoUrl?: string;
+  appName?: string;
 }
+
+export interface CustomerRecord extends User {
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderDate?: string;
+  status: 'active' | 'inactive' | 'suspended';
+}
+
+export interface CustomerStats {
+  totalCustomers: number;
+  newCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  suspendedCustomers: number;
+  totalCustomerSpend: number;
+  averageOrderValue: number;
+  registrationTrends: { date: string; label: string; count: number }[];
+}
+
+export interface MediaItem {
+  id: string;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  url: string;
+  category: 'background' | 'logo' | 'food' | 'general';
+  uploadedBy: string;
+  uploadedAt: string;
+}
+

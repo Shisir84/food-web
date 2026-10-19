@@ -307,14 +307,14 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({
       {/* 4. Orders List */}
       {!isLoading && filteredOrders.length > 0 && (
         <div className="space-y-4">
-          {filteredOrders.map((ord) => {
+          {filteredOrders.map((ord, ordIdx) => {
             const badge = getStatusBadge(ord.status);
             const isExpanded = expandedOrderId === ord.id;
             const isDeliveryActive = isActiveStatus(ord.status);
 
             return (
               <div
-                key={ord.id}
+                key={`${ord.id}-${ordIdx}`}
                 className="rounded-2xl bg-[#151518] border border-[#2B2B30] overflow-hidden transition-all duration-200 hover:border-stone-700 shadow-md"
               >
                 {/* Main Order Card Header & Primary Info */}

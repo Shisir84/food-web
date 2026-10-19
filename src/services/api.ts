@@ -9,6 +9,10 @@ import {
   PlatformStats,
   NotificationItem,
   ThemeSettings,
+  CustomerRecord,
+  CustomerStats,
+  BackgroundConfig,
+  MediaItem,
 } from '../types/index.ts';
 
 const TOKEN_KEY = 'nova_hunger_token';
@@ -39,22 +43,33 @@ export const api = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(endpoint, {
-      ...options,
-      headers,
-    });
+    try {
+      const response = await fetch(endpoint, {
+        ...options,
+        headers,
+      });
 
-    const data = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP error ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 401 && window.location.pathname.startsWith('/admin')) {
+          this.clearToken();
+          window.dispatchEvent(new CustomEvent('nova_admin_session_expired'));
+        }
+        throw new Error(data.error || `HTTP error ${response.status}`);
+      }
+
+      return data as T;
+    } catch (err: any) {
+      if (err.name === 'TypeError' && (err.message.includes('fetch') || err.message.includes('NetworkError'))) {
+        throw new Error('Network failure: Unable to establish connection with Nova Hunger server. Please check your connection.');
+      }
+      throw err;
     }
-
-    return data as T;
   },
 
   // Auth
-  async login(payload: { email: string; password: string; portal?: string }) {
+  async login(payload: { email: string; password: string; portal?: string; rememberMe?: boolean }) {
     const res = await this.request<{
       token: string;
       user: User;
@@ -331,6 +346,126 @@ export const api = {
     return this.request<{ success: boolean; theme: ThemeSettings }>('/api/admin/theme', {
       method: 'POST',
       body: JSON.stringify(theme),
+    });
+  },
+
+  async resetAdminTheme() {
+    return this.request<{ success: boolean; theme: ThemeSettings }>('/api/admin/theme/reset', {
+      method: 'POST',
+    });
+  },
+
+  // Admin Customers
+  async getAdminCustomers(params?: {
+    search?: string;
+    status?: string;
+    dateRange?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request<{
+      customers: CustomerRecord[];
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+      stats: CustomerStats;
+    }>(`/api/admin/customers${query ? `?${query}` : ''}`);
+  },
+
+  async getAdminCustomer(id: string) {
+    return this.request<{
+      customer: CustomerRecord;
+      orders: Order[];
+      savedAddresses: any[];
+    }>(`/api/admin/customers/${id}`);
+  },
+
+  async updateAdminCustomer(id: string, data: Partial<CustomerRecord>) {
+    return this.request<{ success: boolean; customer: CustomerRecord }>(`/api/admin/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateAdminCustomerStatus(id: string, status: string, reason?: string) {
+    return this.request<{ success: boolean; customer: CustomerRecord }>(
+      `/api/admin/customers/${id}/status`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ status, reason }),
+      }
+    );
+  },
+
+  async deleteAdminCustomer(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/api/admin/customers/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getAdminCustomerExportUrl() {
+    const token = this.getToken();
+    return `/api/admin/customers/export${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+
+  // Admin Media Library
+  async getAdminMedia(category?: string) {
+    const query = category ? `?category=${category}` : '';
+    return this.request<MediaItem[]>(`/api/admin/media${query}`);
+  },
+
+  async uploadAdminMedia(data: {
+    fileName: string;
+    mimeType: string;
+    dataUrl: string;
+    category?: string;
+  }) {
+    return this.request<{ success: boolean; media: MediaItem }>('/api/admin/media/upload', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteAdminMedia(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/api/admin/media/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Admin Security & Profile
+  async changeAdminPassword(currentPassword: string, newPassword: string) {
+    return this.request<{ success: boolean; message: string }>('/api/admin/profile/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  async updateAdminProfile(data: { name: string; phone?: string }) {
+    return this.request<{ success: boolean; user: User }>('/api/admin/profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getAdminUsers(params?: { role?: string; search?: string }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request<User[]>(`/api/admin/users${query ? `?${query}` : ''}`);
+  },
+
+  async createAdminUser(data: {
+    name: string;
+    email: string;
+    role: string;
+    password: string;
+    phone?: string;
+  }) {
+    return this.request<{ success: boolean; user: User }>('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };

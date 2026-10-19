@@ -244,9 +244,9 @@ export const RestaurantDashboardView: React.FC<RestaurantDashboardViewProps> = (
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {orders.length > 0 ? (
-            orders.map((ord) => (
+            orders.map((ord, idx) => (
               <div
-                key={ord.id}
+                key={`${ord.id}-${idx}`}
                 className="p-5 sm:p-6 rounded-2xl bg-[#121316] border border-stone-800 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-800">

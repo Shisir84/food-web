@@ -309,9 +309,9 @@ export const RiderDashboardView: React.FC<RiderDashboardViewProps> = ({ onNaviga
           </div>
         ) : availableOrders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availableOrders.map((order) => (
+            {availableOrders.map((order, idx) => (
               <div
-                key={order.id}
+                key={`${order.id}-${idx}`}
                 className="p-5 rounded-2xl bg-[#121316] border border-stone-800 flex flex-col justify-between space-y-4"
               >
                 <div>

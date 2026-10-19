@@ -27,7 +27,7 @@ import {
 
 function MainRouter() {
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname || '/');
-  const { user, riderProfile, restaurantProfile } = useAuth();
+  const { user, riderProfile, restaurantProfile, isLoading, logout } = useAuth();
 
   useEffect(() => {
     const handlePopState = () => {
@@ -37,11 +37,33 @@ function MainRouter() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  useEffect(() => {
+    const handleSessionExpired = async () => {
+      await logout();
+      navigate('/admin/login');
+    };
+    window.addEventListener('nova_admin_session_expired', handleSessionExpired);
+    return () => window.removeEventListener('nova_admin_session_expired', handleSessionExpired);
+  }, [logout]);
+
   const navigate = (path: string) => {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B0B0D]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+          <span className="text-xs text-stone-400 font-medium tracking-wide">
+            Loading Nova Hunger...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Route matchers
   const renderCurrentView = () => {
@@ -162,16 +184,29 @@ function MainRouter() {
 
     // 8. Admin Portal (Dedicated admin login & dashboard)
     if (
+      currentPath === '/admin' ||
       currentPath === '/admin/dashboard' ||
+      currentPath === '/admin/customers' ||
       currentPath === '/admin/riders' ||
       currentPath === '/admin/restaurants' ||
       currentPath === '/admin/orders' ||
+      currentPath === '/admin/users' ||
+      currentPath === '/admin/appearance' ||
+      currentPath === '/admin/media' ||
+      currentPath === '/admin/logs' ||
+      currentPath === '/admin/security' ||
       currentPath === '/admin/settings'
     ) {
+      if (!user || user.role !== 'admin') {
+        return <AuthView portal="admin" mode="login" onNavigate={navigate} />;
+      }
       return <AdminDashboardView onNavigate={navigate} />;
     }
 
     if (currentPath === '/admin/login') {
+      if (user && user.role === 'admin') {
+        return <AdminDashboardView onNavigate={navigate} />;
+      }
       return <AuthView portal="admin" mode="login" onNavigate={navigate} />;
     }
 
