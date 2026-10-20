@@ -22,6 +22,7 @@ export interface User {
   role: UserRole;
   phone?: string;
   avatarUrl?: string;
+  emailVerified?: boolean;
   createdAt: string;
   savedAddresses?: Address[];
   status?: 'active' | 'inactive' | 'suspended';

@@ -9,6 +9,10 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string, portal?: string, rememberMe?: boolean) => Promise<any>;
   register: (payload: any) => Promise<any>;
+  socialLogin: (payload: { provider: string; name: string; email: string; avatarUrl?: string }) => Promise<any>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  verifyEmail: (email: string, code: string) => Promise<{ success: boolean; message: string; user?: User }>;
+  resendVerification: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -74,6 +78,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const socialLogin = async (payload: { provider: string; name: string; email: string; avatarUrl?: string }) => {
+    setIsLoading(true);
+    try {
+      const res = await api.socialLogin(payload);
+      setUser(res.user);
+      setRiderProfile(res.riderProfile || null);
+      setRestaurantProfile(res.restaurantProfile || null);
+      return res;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forgotPassword = async (email: string) => {
+    return api.forgotPassword(email);
+  };
+
+  const verifyEmail = async (email: string, code: string) => {
+    const res = await api.verifyEmail(email, code);
+    if (res.user) {
+      setUser(res.user);
+    }
+    return res;
+  };
+
+  const resendVerification = async (email: string) => {
+    return api.resendVerification(email);
+  };
+
   const logout = async () => {
     api.clearToken();
     setUser(null);
@@ -90,6 +123,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        socialLogin,
+        forgotPassword,
+        verifyEmail,
+        resendVerification,
         logout,
         refreshUser,
       }}

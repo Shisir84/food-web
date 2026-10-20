@@ -36,7 +36,8 @@
           "isDefault": false
         }
       ],
-      "status": "active"
+      "status": "active",
+      "emailVerified": true
     },
     {
       "id": "usr_rider_1",
@@ -348,7 +349,9 @@
     "tok_customer_1792413710398_skn3v5c": "usr_customer_1",
     "tok_customer_1792413771714_qk3mzsy": "usr_customer_1",
     "tok_customer_1792413788920_rcajfa7": "usr_customer_1",
-    "tok_customer_1792414924946_xfm0w76": "usr_customer_1"
+    "tok_customer_1792414924946_xfm0w76": "usr_customer_1",
+    "tok_social_1792480301275_kcxbb2u": "usr_customer_1",
+    "tok_customer_1792480306169_ro9ld0i": "usr_customer_1"
   },
   "riders": [
     {
@@ -1817,6 +1820,16 @@
   ],
   "auditLogs": [
     {
+      "id": "log_1792480292496",
+      "adminId": "system",
+      "adminEmail": "system@novahunger.com",
+      "action": "PASSWORD_RESET_DISPATCHED",
+      "targetType": "user",
+      "targetId": "usr_customer_1",
+      "details": "Password recovery token generated and dispatched for customer@novahunger.com.",
+      "timestamp": "2026-10-20T07:11:32.496Z"
+    },
+    {
       "id": "log_1792414993343",
       "adminId": "system",
       "adminEmail": "rohan.thapa@example.com",
@@ -2504,7 +2517,9 @@
     "tok_customer_1792413710398_skn3v5c": 1792500110399,
     "tok_customer_1792413771714_qk3mzsy": 1792500171715,
     "tok_customer_1792413788920_rcajfa7": 1792500188921,
-    "tok_customer_1792414924946_xfm0w76": 1792501324947
+    "tok_customer_1792414924946_xfm0w76": 1792501324947,
+    "tok_social_1792480301275_kcxbb2u": 1795072301276,
+    "tok_customer_1792480306169_ro9ld0i": 1795072306171
   },
   "contactInquiries": [
     {

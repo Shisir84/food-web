@@ -13,6 +13,7 @@ import {
   Star,
   MapPin,
   Utensils,
+  Sunrise,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { RestaurantProfile, FoodItem } from '../types/index.ts';
@@ -474,6 +475,77 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
                 <span className="text-[#B8B8C0] text-[11px]">Creative Director, Metropolis</span>
               </div>
               <span className="text-[#FF9D00] font-bold tabular-nums">4.9 ★</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. DAYBREAK 3D Sunrise Authentication Showcase */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          className="relative overflow-hidden rounded-3xl p-8 sm:p-12 border border-[#F18B58]/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8"
+          style={{
+            background: 'linear-gradient(135deg, #111A2E 0%, #1A2744 50%, #263653 100%)',
+          }}
+        >
+          {/* Ambient Glow */}
+          <div
+            className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full blur-3xl pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle, rgba(241, 139, 88, 0.25) 0%, rgba(255, 213, 138, 0.1) 60%, transparent 80%)',
+            }}
+          />
+
+          <div className="relative z-10 max-w-xl space-y-4 text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#162138] border border-[#F18B58]/40 text-[#FFD58A] text-xs font-semibold">
+              <Sunrise className="w-4 h-4 text-[#F18B58]" />
+              <span>Project Daybreak · 3D Sunrise Engine</span>
+            </div>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              A cinematic dawn for modern authentication.
+            </h2>
+            <p className="text-sm text-[#B8B8C0] leading-relaxed">
+              Witness the sun rise over procedural mountains, volumetric morning rays illuminate the horizon, and the translucent glass login card emerge with realistic 3D perspective depth.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <button
+                onClick={() => onNavigate('/daybreak')}
+                className="px-6 py-3 rounded-xl text-xs font-bold text-black shadow-lg transition-all hover:scale-105 active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #F18B58 0%, #FFD58A 100%)',
+                }}
+              >
+                Experience Daybreak Sunrise Login
+              </button>
+              <button
+                onClick={() => onNavigate('/daybreak')}
+                className="px-5 py-3 rounded-xl text-xs font-semibold text-[#FFD58A] bg-[#141E33] border border-[#263653] hover:border-[#F18B58]/40 transition-colors"
+              >
+                Launch 3D Solar Dock
+              </button>
+            </div>
+          </div>
+
+          <div className="relative z-10 grid grid-cols-2 gap-3 w-full sm:w-auto shrink-0">
+            <div className="p-4 rounded-2xl bg-[#141E33]/80 border border-[#263653] backdrop-blur-md space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#F18B58] block">Lighting</span>
+              <span className="text-sm font-bold text-white block">ACES Filmic</span>
+              <span className="text-[11px] text-stone-400">Dynamic Dawn Fog</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-[#141E33]/80 border border-[#263653] backdrop-blur-md space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#FFD58A] block">Rendering</span>
+              <span className="text-sm font-bold text-white block">60 FPS WebGL</span>
+              <span className="text-[11px] text-stone-400">Sine Ridges & Rays</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-[#141E33]/80 border border-[#263653] backdrop-blur-md space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#FFF6E9] block">Security</span>
+              <span className="text-sm font-bold text-white block">OWASP Standard</span>
+              <span className="text-[11px] text-stone-400">Rate Limiting</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-[#141E33]/80 border border-[#263653] backdrop-blur-md space-y-1">
+              <span className="text-[10px] uppercase font-bold text-emerald-400 block">Portals</span>
+              <span className="text-sm font-bold text-white block">4 Unified Roles</span>
+              <span className="text-[11px] text-stone-400">Customer to Admin</span>
             </div>
           </div>
         </div>

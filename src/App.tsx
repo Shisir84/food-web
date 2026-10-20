@@ -17,6 +17,7 @@ import { RestaurantDashboardView } from './views/RestaurantDashboardView.tsx';
 import { RestaurantPendingView } from './views/RestaurantPendingView.tsx';
 import { AdminDashboardView } from './views/AdminDashboardView.tsx';
 import { CustomerDashboardView } from './views/CustomerDashboardView.tsx';
+import { DaybreakHome3D } from './views/DaybreakHome3D.tsx';
 import { NovaChatbot } from './components/NovaChatbot.tsx';
 import {
   OffersView,
@@ -201,8 +202,12 @@ function MainRouter() {
       return <AdminDashboardView onNavigate={navigate} />;
     }
 
-    // 9. Customer Auth Routes (Supporting redirect query params e.g. /login?redirect=checkout)
+    // 9. Daybreak & Customer Auth Routes (Supporting redirect query params e.g. /login?redirect=checkout)
     if (
+      currentPath === '/daybreak' ||
+      currentPath.startsWith('/daybreak?') ||
+      currentPath === '/auth' ||
+      currentPath.startsWith('/auth?') ||
       currentPath === '/login' ||
       currentPath.startsWith('/login?') ||
       currentPath === '/customer/login' ||
@@ -219,7 +224,16 @@ function MainRouter() {
       return <AuthView portal="customer" mode="register" onNavigate={navigate} />;
     }
 
-    // 10. Static & Utility Pages
+    // 10. 3D Home & Root View
+    if (currentPath === '/home' || currentPath === '/3d-home' || (currentPath === '/' && user)) {
+      return <DaybreakHome3D onNavigate={navigate} />;
+    }
+
+    if (currentPath === '/' && !user) {
+      return <AuthView portal="customer" mode="login" onNavigate={navigate} />;
+    }
+
+    // 11. Static & Utility Pages
     if (currentPath === '/offers') return <OffersView onNavigate={navigate} />;
     if (currentPath === '/about') return <AboutView onNavigate={navigate} />;
     if (currentPath === '/contact' || currentPath.startsWith('/contact?')) return <ContactView />;
@@ -227,9 +241,63 @@ function MainRouter() {
     if (currentPath === '/privacy') return <LegalView type="privacy" />;
     if (currentPath === '/terms') return <LegalView type="terms" />;
 
-    // Default: HomeView
-    return <HomeView onNavigate={navigate} />;
+    // Classic Marketplace fallback
+    if (currentPath === '/classic' || currentPath === '/market') {
+      return <HomeView onNavigate={navigate} />;
+    }
+
+    // Default
+    return user ? <DaybreakHome3D onNavigate={navigate} /> : <HomeView onNavigate={navigate} />;
   };
+
+  // Determine if viewing an edge-to-edge Daybreak authentication view
+  const isAuthRoute =
+    (!user && currentPath === '/') ||
+    currentPath === '/daybreak' ||
+    currentPath.startsWith('/daybreak?') ||
+    currentPath === '/auth' ||
+    currentPath.startsWith('/auth?') ||
+    currentPath === '/login' ||
+    currentPath.startsWith('/login?') ||
+    currentPath === '/register' ||
+    currentPath.startsWith('/register?') ||
+    currentPath === '/customer/login' ||
+    currentPath.startsWith('/customer/login?') ||
+    currentPath === '/customer/register' ||
+    currentPath.startsWith('/customer/register?') ||
+    currentPath === '/rider/login' ||
+    currentPath === '/rider/register' ||
+    currentPath === '/restaurant/login' ||
+    currentPath === '/restaurant/register' ||
+    (currentPath.startsWith('/admin') && (!user || user.role !== 'admin')) ||
+    (!user && (
+      currentPath === '/customer/dashboard' ||
+      currentPath === '/customer/orders' ||
+      currentPath === '/rider/dashboard' ||
+      currentPath === '/restaurant/dashboard'
+    ));
+
+  if (isAuthRoute) {
+    return (
+      <div className="min-h-screen w-full bg-[#111A2E] text-white">
+        {renderCurrentView()}
+      </div>
+    );
+  }
+
+  const isDaybreakHome =
+    currentPath === '/home' ||
+    currentPath === '/3d-home' ||
+    (currentPath === '/' && user);
+
+  if (isDaybreakHome) {
+    return (
+      <div className="min-h-screen w-full bg-[#0D1424] text-white">
+        <DaybreakHome3D onNavigate={navigate} />
+        <NovaChatbot onNavigate={navigate} />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -103,6 +103,42 @@ export const api = {
     return res;
   },
 
+  async forgotPassword(email: string) {
+    return this.request<{ success: boolean; message: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async verifyEmail(email: string, code: string) {
+    return this.request<{ success: boolean; message: string; user?: User }>('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+  },
+
+  async resendVerification(email: string) {
+    return this.request<{ success: boolean; message: string }>('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async socialLogin(payload: { provider: string; name: string; email: string; avatarUrl?: string }) {
+    const res = await this.request<{
+      token: string;
+      user: User;
+      riderProfile?: RiderProfile;
+      restaurantProfile?: RestaurantProfile;
+      provider: string;
+    }>('/api/auth/social-login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    this.setToken(res.token);
+    return res;
+  },
+
   async getCurrentUser() {
     return this.request<{
       user: User;

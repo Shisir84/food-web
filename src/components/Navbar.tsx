@@ -10,6 +10,7 @@ import {
   X,
   Bike,
   Store,
+  Sunrise,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
@@ -119,6 +120,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
             }`}
           >
             Contact
+          </button>
+          <button
+            onClick={() => onNavigate(user ? '/home' : '/daybreak')}
+            className={`transition-all duration-200 hover:text-[#FFD58A] hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-1.5 ${
+              currentPath === '/daybreak' || currentPath === '/login' || currentPath === '/home' || (currentPath === '/' && user)
+                ? 'text-[#FFD58A] font-semibold'
+                : 'text-[#F18B58]'
+            }`}
+          >
+            <Sunrise className="w-3.5 h-3.5 text-[#F18B58]" />
+            <span>{user ? '3D Experience' : 'Daybreak 3D'}</span>
           </button>
         </nav>
 
@@ -292,6 +304,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
           </nav>
 
           <div className="pt-3 border-t border-[#2B2B30] flex flex-col gap-2">
+            <button
+              onClick={() => handleMobileNav('/daybreak')}
+              className="flex items-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-gradient-to-r from-[#F18B58]/20 to-[#FFD58A]/20 border border-[#F18B58]/40 text-[#FFD58A] hover:text-white"
+            >
+              <Sunrise className="w-4 h-4 text-[#F18B58]" />
+              <span>Daybreak 3D Sunrise Auth</span>
+            </button>
+
             <button
               onClick={() => handleMobileNav('/admin/login')}
               className="flex items-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-[#151518] border border-[#2B2B30] text-stone-200 hover:text-white hover:border-[#FF7900]"
