@@ -74,6 +74,7 @@ import {
   MediaItem,
   User as UserType,
   ContactInquiry,
+  ContactPageSettings,
   ChatbotSettings,
   EmailSettings,
 } from '../types/index.ts';
@@ -89,6 +90,7 @@ type AdminTab =
   | 'riders'
   | 'restaurants'
   | 'orders'
+  | 'contact-settings'
   | 'inquiries'
   | 'chatbot'
   | 'email'
@@ -110,7 +112,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     if (path.includes('/riders')) return 'riders';
     if (path.includes('/restaurants')) return 'restaurants';
     if (path.includes('/orders')) return 'orders';
-    if (path.includes('/inquiries')) return 'inquiries';
+    if (path.includes('/contact-settings') || path.includes('/contact_settings')) return 'contact-settings';
+    if (path.includes('/inquiries') || path.includes('/messages')) return 'inquiries';
     if (path.includes('/chatbot')) return 'chatbot';
     if (path.includes('/email')) return 'email';
     if (path.includes('/users')) return 'users';
@@ -120,6 +123,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     if (path.includes('/security') || path.includes('/settings')) return 'security';
     return 'dashboard';
   });
+
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -211,7 +215,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
-  // Inquiries State
+  // Inquiries & Contact Messages State
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [inquirySearch, setInquirySearch] = useState('');
   const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
@@ -219,6 +223,36 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
   const [inspectingInquiry, setInspectingInquiry] = useState<ContactInquiry | null>(null);
   const [adminNoteInput, setAdminNoteInput] = useState('');
   const [inquiryActionLoading, setInquiryActionLoading] = useState(false);
+  const [inquiryPage, setInquiryPage] = useState(1);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  // Contact Page Settings State (Section 3 CMS)
+  const [contactSettings, setContactSettings] = useState<ContactPageSettings>({
+    supportPhone: '+1 (555) 019-NOVA',
+    supportEmail: 'support@novahunger.com',
+    businessAddress: '400 Central Plaza, Metropolis',
+    heading: 'Get in Touch',
+    description: 'Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.',
+    supportCardHeading: 'Headquarters & Support Desk',
+    formEnabled: true,
+    showSubject: true,
+    subjectRequired: false,
+    confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+    notificationEmail: 'support@novahunger.com',
+    minMessageLength: 10,
+    maxMessageLength: 2000,
+    showContactDetails: true,
+    showOperatingHours: true,
+    operatingHours: '24/7 Priority Support Desk',
+  });
+  const [originalContactSettings, setOriginalContactSettings] = useState<ContactPageSettings | null>(null);
+  const [contactSettingsLoading, setContactSettingsLoading] = useState(false);
+  const [contactSettingsSaving, setContactSettingsSaving] = useState(false);
+  const [emailProviderInfo, setEmailProviderInfo] = useState<{ configured: boolean; providers: string[] }>({
+    configured: false,
+    providers: [],
+  });
+
 
   // Chatbot Settings State
   const [chatbotSettings, setChatbotSettings] = useState<ChatbotSettings>({
@@ -385,6 +419,63 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     }
   };
 
+  // Load Contact Page Settings
+  const loadContactSettings = async () => {
+    try {
+      setContactSettingsLoading(true);
+      const res = await api.getAdminContactSettings();
+      if (res.settings) {
+        setContactSettings(res.settings);
+        setOriginalContactSettings(res.settings);
+      }
+      setEmailProviderInfo({
+        configured: res.emailProviderConfigured,
+        providers: res.availableProviders || [],
+      });
+    } catch (err: any) {
+      console.error('Failed to load contact settings:', err);
+      showError(err.message || 'Failed to load contact settings.');
+    } finally {
+      setContactSettingsLoading(false);
+    }
+  };
+
+  const handleSaveContactSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setContactSettingsSaving(true);
+    try {
+      const res = await api.saveAdminContactSettings(contactSettings);
+      setContactSettings(res.settings);
+      setOriginalContactSettings(res.settings);
+      showSuccess('Contact Page settings saved and published successfully!');
+    } catch (err: any) {
+      showError(err.message || 'Failed to save contact settings.');
+    } finally {
+      setContactSettingsSaving(false);
+    }
+  };
+
+  const handleResetContactSettings = () => {
+    if (originalContactSettings) {
+      setContactSettings({ ...originalContactSettings });
+      showSuccess('Unsaved changes reverted to active configuration.');
+    }
+  };
+
+  const handleDeleteInquiry = async (id: string) => {
+    if (!confirm('Are you sure you want to permanently delete this customer inquiry ticket?')) return;
+    try {
+      await api.deleteAdminInquiry(id);
+      showSuccess('Inquiry ticket removed successfully.');
+      if (inspectingInquiry?.id === id) {
+        setInspectingInquiry(null);
+      }
+      await loadInquiries();
+    } catch (err: any) {
+      showError(err.message || 'Failed to delete inquiry ticket.');
+    }
+  };
+
   // Initial & Tab-based data loading
   useEffect(() => {
     loadPlatformData();
@@ -400,6 +491,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
     if (activeTab === 'users') {
       loadUsers();
     }
+    if (activeTab === 'contact-settings') {
+      loadContactSettings();
+    }
     if (activeTab === 'inquiries') {
       loadInquiries();
     }
@@ -413,6 +507,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
       loadSystemHealth();
     }
   }, [
+
     activeTab,
     customerSearch,
     customerStatusFilter,
@@ -800,6 +895,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
       label: 'Orders & Dispatch',
       icon: <Package className="w-4 h-4" />,
       badge: stats?.activeDeliveries ? stats.activeDeliveries : undefined,
+    },
+    {
+      id: 'contact-settings',
+      label: 'Contact Page Settings',
+      icon: <Phone className="w-4 h-4" />,
     },
     {
       id: 'inquiries',
@@ -3003,6 +3103,559 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ===================================================== */}
+          {/* TAB: CONTACT PAGE SETTINGS (CMS)                      */}
+          {/* ===================================================== */}
+          {activeTab === 'contact-settings' && (
+            <div className="space-y-6 animate-in fade-in">
+              {/* Header and Save Controls */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-display text-2xl font-bold tracking-tight">Contact Page Settings</h1>
+                  <p className="text-xs text-stone-400 mt-1">
+                    Manage public support information, customize the contact inquiry form, and configure notification routing.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResetContactSettings}
+                    disabled={contactSettingsSaving || contactSettingsLoading}
+                    className="px-4 py-2 rounded-xl border border-stone-700 bg-stone-900/60 hover:bg-stone-800 text-stone-300 hover:text-white text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Reset Unsaved Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('/contact')}
+                    className="px-4 py-2 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Preview Contact Page</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveContactSettings}
+                    disabled={contactSettingsSaving || contactSettingsLoading}
+                    className="btn-primary px-5 py-2 text-xs font-bold flex items-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {contactSettingsSaving ? (
+                      <>
+                        <RotateCw className="w-4 h-4 animate-spin" />
+                        <span>Saving Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Status and Notification Pipeline Diagnostics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Form Status</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        contactSettings.formEnabled
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      }`}
+                    >
+                      {contactSettings.formEnabled ? '● Publicly Active' : '○ Offline / Paused'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    {contactSettings.formEnabled
+                      ? 'Customers can submit inquiries directly via the website.'
+                      : 'Visitors will see an offline banner with direct support contact details.'}
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Notification Destination</span>
+                  <div className="font-mono text-xs font-bold text-orange-400 truncate">
+                    {contactSettings.notificationEmail || contactSettings.supportEmail}
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    All customer messages are automatically dispatched or alerted to this inbox.
+                  </p>
+                </div>
+
+                <div className={`p-5 rounded-3xl border shadow-sm space-y-2 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                  <span className="text-xs font-bold text-white block">Email Dispatch Engine</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        emailProviderInfo.configured
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      }`}
+                    >
+                      {emailProviderInfo.configured
+                        ? `Active (${emailProviderInfo.providers.join(', ')})`
+                        : 'Secure Local Storage Guard'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    {emailProviderInfo.configured
+                      ? 'Transactional email notifications are delivered via configured API.'
+                      : 'Messages are safely saved in database and instantly reviewable in Inquiries tab.'}
+                  </p>
+                </div>
+              </div>
+
+              {contactSettingsLoading ? (
+                <div className="py-20 text-center text-xs text-stone-400">Loading Contact Page configuration...</div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Grid for Business Details and Form Configuration */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* SECTION 1: BUSINESS CONTACT INFORMATION */}
+                    <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                      <div className="flex items-center gap-3 border-b border-[#2B2B30]/60 pb-3">
+                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                          <Phone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="font-display font-bold text-base text-white">Business Contact Information</h3>
+                          <p className="text-[11px] text-stone-400">Publicly visible contact channels and address details</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3.5 pt-1">
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Support Phone Number
+                          </label>
+                          <input
+                            type="text"
+                            value={contactSettings.supportPhone}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, supportPhone: e.target.value }))
+                            }
+                            placeholder="+1 (555) 019-NOVA"
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Public Support Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={contactSettings.supportEmail}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, supportEmail: e.target.value }))
+                            }
+                            placeholder="support@novahunger.com"
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Physical Business Address
+                          </label>
+                          <input
+                            type="text"
+                            value={contactSettings.businessAddress}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, businessAddress: e.target.value }))
+                            }
+                            placeholder="400 Central Plaza, Metropolis"
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Contact Section Heading
+                          </label>
+                          <input
+                            type="text"
+                            value={contactSettings.heading}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, heading: e.target.value }))
+                            }
+                            placeholder="Get in Touch"
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Short Introductory Description
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={contactSettings.description}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, description: e.target.value }))
+                            }
+                            placeholder="Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist."
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Support Information Card Heading
+                          </label>
+                          <input
+                            type="text"
+                            value={contactSettings.supportCardHeading}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, supportCardHeading: e.target.value }))
+                            }
+                            placeholder="Headquarters & Support Desk"
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: CONTACT FORM CONFIGURATION */}
+                    <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                      <div className="flex items-center gap-3 border-b border-[#2B2B30]/60 pb-3">
+                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                          <Sliders className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="font-display font-bold text-base text-white">Contact Form Configuration</h3>
+                          <p className="text-[11px] text-stone-400">Form availability, field visibility, and submission rules</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 pt-1">
+                        {/* Enable/Disable Form Toggle */}
+                        <div className="p-3.5 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-between gap-4">
+                          <div>
+                            <span className="text-xs font-semibold text-white block">Enable Contact Form</span>
+                            <span className="text-[11px] text-stone-400">Allow visitors to submit messages through the web form</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setContactSettings((prev) => ({ ...prev, formEnabled: !prev.formEnabled }))
+                            }
+                            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                              contactSettings.formEnabled ? 'bg-orange-500' : 'bg-stone-700'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                contactSettings.formEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Subject Visibility and Requirement Toggles */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="p-3.5 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-xs font-semibold text-white block">Show Subject Field</span>
+                              <span className="text-[10px] text-stone-400">Display subject input in form</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setContactSettings((prev) => ({ ...prev, showSubject: !prev.showSubject }))
+                              }
+                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                                contactSettings.showSubject ? 'bg-orange-500' : 'bg-stone-700'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                  contactSettings.showSubject ? 'translate-x-4.5' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                          </div>
+
+                          <div className="p-3.5 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-xs font-semibold text-white block">Require Subject</span>
+                              <span className="text-[10px] text-stone-400">Must be non-empty</span>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={!contactSettings.showSubject}
+                              onClick={() =>
+                                setContactSettings((prev) => ({ ...prev, subjectRequired: !prev.subjectRequired }))
+                              }
+                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer disabled:opacity-30 ${
+                                contactSettings.subjectRequired && contactSettings.showSubject ? 'bg-orange-500' : 'bg-stone-700'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                  contactSettings.subjectRequired && contactSettings.showSubject ? 'translate-x-4.5' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Support Notification Recipient */}
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Support Notification Recipient Email
+                          </label>
+                          <input
+                            type="email"
+                            value={contactSettings.notificationEmail}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, notificationEmail: e.target.value }))
+                            }
+                            placeholder="support@novahunger.com"
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                          <span className="text-[10px] text-stone-500 block mt-1">
+                            Incoming inquiries are routed to this address when email dispatch is triggered.
+                          </span>
+                        </div>
+
+                        {/* Message Length Limits */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                              Minimum Length (chars)
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={500}
+                              value={contactSettings.minMessageLength}
+                              onChange={(e) =>
+                                setContactSettings((prev) => ({
+                                  ...prev,
+                                  minMessageLength: parseInt(e.target.value, 10) || 1,
+                                }))
+                              }
+                              className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                              Maximum Length (chars)
+                            </label>
+                            <input
+                              type="number"
+                              min={50}
+                              max={10000}
+                              value={contactSettings.maxMessageLength}
+                              onChange={(e) =>
+                                setContactSettings((prev) => ({
+                                  ...prev,
+                                  maxMessageLength: parseInt(e.target.value, 10) || 2000,
+                                }))
+                              }
+                              className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Confirmation Message */}
+                        <div>
+                          <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                            Form Confirmation Message
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={contactSettings.confirmationMessage}
+                            onChange={(e) =>
+                              setContactSettings((prev) => ({ ...prev, confirmationMessage: e.target.value }))
+                            }
+                            placeholder="Thank you! Your message has been submitted successfully."
+                            className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 3: FOOTER & DISPLAY SETTINGS */}
+                  <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                    <div className="flex items-center gap-3 border-b border-[#2B2B30]/60 pb-3">
+                      <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-display font-bold text-base text-white">Footer and Display Settings</h3>
+                        <p className="text-[11px] text-stone-400">Configure public layout and operating schedule display</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                      {/* Show/Hide Contact Info Column */}
+                      <div className="p-3.5 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-between gap-4">
+                        <div>
+                          <span className="text-xs font-semibold text-white block">Show Contact Information Card</span>
+                          <span className="text-[11px] text-stone-400">Display phone, email, and address card beside form</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setContactSettings((prev) => ({
+                              ...prev,
+                              showContactDetails: !prev.showContactDetails,
+                            }))
+                          }
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                            contactSettings.showContactDetails ? 'bg-orange-500' : 'bg-stone-700'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              contactSettings.showContactDetails ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Show/Hide Operating Hours */}
+                      <div className="p-3.5 rounded-2xl bg-[#0B0B0D] border border-[#2B2B30] flex items-center justify-between gap-4">
+                        <div>
+                          <span className="text-xs font-semibold text-white block">Show Operating Schedule</span>
+                          <span className="text-[11px] text-stone-400">Display working hours in the support card</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setContactSettings((prev) => ({
+                              ...prev,
+                              showOperatingHours: !prev.showOperatingHours,
+                            }))
+                          }
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                            contactSettings.showOperatingHours ? 'bg-orange-500' : 'bg-stone-700'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              contactSettings.showOperatingHours ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Operating Hours Description */}
+                      <div className="md:col-span-2">
+                        <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+                          Support Operating Schedule Text
+                        </label>
+                        <input
+                          type="text"
+                          value={contactSettings.operatingHours}
+                          onChange={(e) =>
+                            setContactSettings((prev) => ({ ...prev, operatingHours: e.target.value }))
+                          }
+                          placeholder="24/7 Priority Support Desk"
+                          className="w-full bg-[#0B0B0D] border border-[#2B2B30] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LIVE MINIATURE PREVIEW */}
+                  <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${isLight ? 'bg-white border-slate-200' : 'bg-[#151518] border-[#2B2B30]'}`}>
+                    <div className="flex items-center justify-between border-b border-[#2B2B30]/60 pb-3">
+                      <div>
+                        <h3 className="font-display font-bold text-base text-white">Live Miniature Preview</h3>
+                        <p className="text-[11px] text-stone-400">Interactive preview of how the public Contact page renders with these settings</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onNavigate('/contact')}
+                        className="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center gap-1"
+                      >
+                        <span>Open Live Page</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="p-6 rounded-2xl bg-[#0B0B0D] border border-stone-800 space-y-6">
+                      <div className="text-center max-w-md mx-auto space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Support Desk</span>
+                        <h4 className="font-display font-extrabold text-xl text-white">{contactSettings.heading}</h4>
+                        <p className="text-xs text-stone-400 line-clamp-2">{contactSettings.description}</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start text-xs">
+                        {contactSettings.showContactDetails && (
+                          <div className="md:col-span-5 p-4 rounded-xl bg-[#121316] border border-stone-800 space-y-3">
+                            <span className="font-bold text-white block text-[11px]">{contactSettings.supportCardHeading}</span>
+                            <div className="space-y-2 text-[11px] text-stone-400">
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-3 h-3 text-orange-400 shrink-0" />
+                                <span>{contactSettings.supportPhone}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Mail className="w-3 h-3 text-orange-400 shrink-0" />
+                                <span className="truncate">{contactSettings.supportEmail}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-3 h-3 text-orange-400 shrink-0" />
+                                <span>{contactSettings.businessAddress}</span>
+                              </div>
+                              {contactSettings.showOperatingHours && (
+                                <div className="flex items-center gap-2 pt-1 border-t border-stone-800">
+                                  <Clock className="w-3 h-3 text-orange-400 shrink-0" />
+                                  <span>{contactSettings.operatingHours}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={contactSettings.showContactDetails ? 'md:col-span-7' : 'md:col-span-12'}>
+                          {contactSettings.formEnabled ? (
+                            <div className="p-4 rounded-xl bg-[#121316] border border-stone-800 space-y-3">
+                              <span className="font-bold text-white block text-[11px]">Contact Form Preview</span>
+                              <div className="space-y-2">
+                                <div className="p-2 rounded-lg bg-[#18191E] border border-stone-800 text-[11px] text-stone-500">
+                                  Enter your full name
+                                </div>
+                                <div className="p-2 rounded-lg bg-[#18191E] border border-stone-800 text-[11px] text-stone-500">
+                                  Enter your email address
+                                </div>
+                                {contactSettings.showSubject && (
+                                  <div className="p-2 rounded-lg bg-[#18191E] border border-stone-800 text-[11px] text-stone-500">
+                                    Enter your subject {contactSettings.subjectRequired ? '(Required)' : '(Optional)'}
+                                  </div>
+                                )}
+                                <div className="p-2.5 rounded-lg bg-[#18191E] border border-stone-800 text-[11px] text-stone-500 h-16">
+                                  How can we help you? (Min {contactSettings.minMessageLength} - Max {contactSettings.maxMessageLength} chars)
+                                </div>
+                                <div className="py-2 text-center text-xs font-bold text-black bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg">
+                                  Send Message
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-6 rounded-xl bg-[#121316] border border-stone-800 text-center space-y-2">
+                              <Mail className="w-6 h-6 mx-auto text-orange-400" />
+                              <div className="font-bold text-xs text-white">Contact Form Temporarily Paused</div>
+                              <div className="text-[11px] text-stone-400">Direct inquiries directed to {contactSettings.supportEmail}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

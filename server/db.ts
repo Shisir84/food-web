@@ -16,6 +16,7 @@ import type {
   EmailSettings,
   BackgroundStudioConfig,
   BackgroundRevision,
+  ContactPageSettings,
 } from '../src/types/index.ts';
 
 const DB_FILE = path.resolve(process.cwd(), 'data', 'database.json');
@@ -35,12 +36,14 @@ export interface DatabaseSchema {
   themeSettings: ThemeSettings;
   mediaLibrary: MediaItem[];
   contactInquiries?: ContactInquiry[];
+  contactSettings?: ContactPageSettings;
   chatbotSettings?: ChatbotSettings;
   emailSettings?: EmailSettings;
   backgroundStudio?: Record<string, any>;
   backgroundStudioConfigs?: Record<string, any>;
   backgroundRevisions?: BackgroundRevision[];
 }
+
 
 const INITIAL_FOOD_IMAGES = {
   hero: '/src/assets/images/hero_food_showcase_1792316190702.jpg',
@@ -724,8 +727,28 @@ function getInitialDatabase(): DatabaseSchema {
     },
     tokenExpires: {},
     mediaLibrary: [],
+    contactInquiries: [],
+    contactSettings: {
+      supportPhone: '+1 (555) 019-NOVA',
+      supportEmail: 'support@novahunger.com',
+      businessAddress: '400 Central Plaza, Metropolis',
+      heading: 'Get in Touch',
+      description: 'Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.',
+      supportCardHeading: 'Headquarters & Support Desk',
+      formEnabled: true,
+      showSubject: true,
+      subjectRequired: false,
+      confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+      notificationEmail: 'support@novahunger.com',
+      minMessageLength: 10,
+      maxMessageLength: 2000,
+      showContactDetails: true,
+      showOperatingHours: true,
+      operatingHours: '24/7 Priority Support Desk',
+    },
   };
 }
+
 
 class Database {
   private data: DatabaseSchema;
@@ -799,6 +822,29 @@ class Database {
           };
           modified = true;
         }
+
+        if (!parsed.contactSettings) {
+          parsed.contactSettings = {
+            supportPhone: '+1 (555) 019-NOVA',
+            supportEmail: 'support@novahunger.com',
+            businessAddress: '400 Central Plaza, Metropolis',
+            heading: 'Get in Touch',
+            description: 'Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.',
+            supportCardHeading: 'Headquarters & Support Desk',
+            formEnabled: true,
+            showSubject: true,
+            subjectRequired: false,
+            confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+            notificationEmail: 'support@novahunger.com',
+            minMessageLength: 10,
+            maxMessageLength: 2000,
+            showContactDetails: true,
+            showOperatingHours: true,
+            operatingHours: '24/7 Priority Support Desk',
+          };
+          modified = true;
+        }
+
 
         // Support both admin@novahunger.com and shisirtharu17@gmail.com
         if (!parsed.users.some((u: any) => u.email.toLowerCase() === 'shisirtharu17@gmail.com')) {

@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, RiderProfile, RestaurantProfile } from '../types/index.ts';
 import { api } from '../services/api.ts';
+import {
+  auth,
+  signInWithGooglePopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+} from '../lib/firebase.ts';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string, portal?: string, rememberMe?: boolean) => Promise<any>;
   register: (payload: any) => Promise<any>;
+  loginWithGoogle: () => Promise<any>;
   socialLogin: (payload: { provider: string; name: string; email: string; avatarUrl?: string }) => Promise<any>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   verifyEmail: (email: string, code: string) => Promise<{ success: boolean; message: string; user?: User }>;
@@ -50,11 +61,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshUser();
+
+    // Listen to Firebase Auth state for real session persistence
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser && fbUser.email) {
+        // If app does not have token or user session is empty, auto-sync with backend
+        if (!api.getToken()) {
+          try {
+            const res = await api.socialLogin({
+              provider: 'google',
+              name: fbUser.displayName || fbUser.email.split('@')[0],
+              email: fbUser.email,
+              avatarUrl: fbUser.photoURL || undefined,
+            });
+            setUser(res.user);
+            setRiderProfile(res.riderProfile || null);
+            setRestaurantProfile(res.restaurantProfile || null);
+          } catch (e) {
+            console.warn('Auto-sync with backend error:', e);
+          }
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const fbUser = await signInWithGooglePopup();
+      if (!fbUser || !fbUser.email) {
+        throw new Error('Google authentication completed, but no email was provided.');
+      }
+      const displayName = fbUser.displayName || fbUser.email.split('@')[0] || 'Google User';
+      const avatarUrl = fbUser.photoURL || undefined;
+
+      const res = await api.socialLogin({
+        provider: 'google',
+        name: displayName,
+        email: fbUser.email,
+        avatarUrl,
+      });
+
+      setUser(res.user);
+      setRiderProfile(res.riderProfile || null);
+      setRestaurantProfile(res.restaurantProfile || null);
+      return res;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string, portal?: string, rememberMe?: boolean) => {
     setIsLoading(true);
     try {
+      // Attempt Firebase auth for users configured in Firebase Authentication
+      signInWithEmailAndPassword(auth, email.trim(), password).catch(() => {
+        // Ignored for pre-seeded local database users
+      });
+
       const res = await api.login({ email, password, portal, rememberMe });
       setUser(res.user);
       setRiderProfile(res.riderProfile || null);
@@ -68,6 +134,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (payload: any) => {
     setIsLoading(true);
     try {
+      try {
+        const fbCred = await createUserWithEmailAndPassword(auth, payload.email.trim(), payload.password);
+        if (payload.name && fbCred.user) {
+          await updateProfile(fbCred.user, { displayName: payload.name.trim() });
+        }
+      } catch (fbErr: any) {
+        console.warn('Firebase user creation note:', fbErr?.message || fbErr);
+      }
+
       const res = await api.register(payload);
       setUser(res.user);
       setRiderProfile(res.riderProfile || null);
@@ -92,6 +167,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const forgotPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+    } catch (fbErr: any) {
+      console.warn('Firebase password reset email note:', fbErr?.message || fbErr);
+    }
     return api.forgotPassword(email);
   };
 
@@ -108,6 +188,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Firebase signOut notice:', e);
+    }
     api.clearToken();
     setUser(null);
     setRiderProfile(null);
@@ -123,6 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginWithGoogle,
         socialLogin,
         forgotPassword,
         verifyEmail,
@@ -141,4 +227,5 @@ export const useAuth = () => {
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
+
 

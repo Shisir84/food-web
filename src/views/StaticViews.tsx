@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Tag,
   Copy,
@@ -12,8 +12,14 @@ import {
   Award,
   Clock,
   Sparkles,
+  AlertCircle,
+  RotateCw,
+  User,
 } from 'lucide-react';
 import { api } from '../services/api.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import type { ContactPageSettings } from '../types/index.ts';
+
 
 // -------------------------------------------------------------
 // OFFERS VIEW
@@ -173,21 +179,79 @@ export const AboutView: React.FC<{ onNavigate: (path: string) => void }> = ({ on
 // CONTACT VIEW
 // -------------------------------------------------------------
 export const ContactView: React.FC = () => {
+  const { user } = useAuth();
   const searchParams = new URLSearchParams(window.location.search);
   const initialSubject = searchParams.get('subject') || '';
   const initialMessage = searchParams.get('message') || '';
 
+  // Configuration settings from backend
+  const [settings, setSettings] = useState<ContactPageSettings>({
+    supportPhone: '+1 (555) 019-NOVA',
+    supportEmail: 'support@novahunger.com',
+    businessAddress: '400 Central Plaza, Metropolis',
+    heading: 'Get in Touch',
+    description: 'Need assistance with a live order, rider inquiry, or restaurant listing?',
+    supportCardHeading: 'Headquarters & Support Desk',
+    formEnabled: true,
+    showSubject: true,
+    subjectRequired: false,
+    confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+    notificationEmail: 'support@novahunger.com',
+    minMessageLength: 10,
+    maxMessageLength: 2000,
+    showContactDetails: true,
+    showOperatingHours: true,
+    operatingHours: '24/7 Priority Support Desk',
+  });
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  // Form input states - strictly empty by default, no pre-filled personal/demo info
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState(initialSubject);
   const [message, setMessage] = useState(initialMessage);
   const [honeypot, setHoneypot] = useState('');
+
+  // Submission & Feedback states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responseMsg, setResponseMsg] = useState<string | null>(null);
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasAutofilled, setHasAutofilled] = useState(false);
 
   const isEscalatedFromChat = initialSubject.includes('AI') || initialMessage.includes('AI Assistant');
+
+  // Load public contact configuration from backend
+  useEffect(() => {
+    let mounted = true;
+    const fetchSettings = async () => {
+      try {
+        const data = await api.getPublicContactSettings();
+        if (mounted && data) {
+          setSettings((prev) => ({ ...prev, ...data }));
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic contact settings, using fallback:', err);
+      } finally {
+        if (mounted) setSettingsLoading(false);
+      }
+    };
+    fetchSettings();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Optional, user-controlled account autofill (only executed if user explicitly clicks button)
+  const handleAutofillUser = () => {
+    if (user) {
+      if (!name) setName(user.name || '');
+      if (!email) setEmail(user.email || '');
+      setHasAutofilled(true);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,197 +259,383 @@ export const ContactView: React.FC = () => {
     setResponseMsg(null);
     setErrorMessage(null);
 
-    // Basic frontend email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setErrorMessage('Please enter a valid email address (e.g., name@example.com).');
+    // Client-side validation
+    const trimmedName = name.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setErrorMessage('Please enter your full name (minimum 2 characters).');
+      setIsSubmitting(false);
+      return;
+    }
+    if (trimmedName.length > 100) {
+      setErrorMessage('Full name must be 100 characters or fewer.');
       setIsSubmitting(false);
       return;
     }
 
-    if (message.trim().length < 10) {
-      setErrorMessage('Please write a detailed inquiry message (at least 10 characters).');
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address (e.g. name@domain.com).');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (settings.showSubject && settings.subjectRequired && !subject.trim()) {
+      setErrorMessage('Please enter an inquiry subject.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const minLen = settings.minMessageLength || 10;
+    const maxLen = settings.maxMessageLength || 2000;
+    const trimmedMessage = message.trim();
+
+    if (!trimmedMessage || trimmedMessage.length < minLen) {
+      setErrorMessage(`Please enter an inquiry message of at least ${minLen} characters.`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (trimmedMessage.length > maxLen) {
+      setErrorMessage(`Message exceeds the maximum limit of ${maxLen} characters.`);
       setIsSubmitting(false);
       return;
     }
 
     try {
       const res = await api.submitContact({
-        name: name.trim(),
-        email: email.trim(),
+        name: trimmedName,
+        email: trimmedEmail,
         subject: subject.trim(),
-        message: message.trim(),
-        hp: honeypot, // Honeypot field for anti-spam
+        message: trimmedMessage,
+        hp: honeypot, // Honeypot field for anti-spam detection
       });
+
       setResponseMsg(res.message);
       setTicketNumber(res.ticketNumber);
+      setEmailSent(!!res.emailSent);
+      setEmailDeliveryStatus(res.emailDeliveryStatus || 'stored_locally');
+
+      // Clear the form fields only after successful submission confirmation
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
+      setHasAutofilled(false);
     } catch (e: any) {
+      // Do NOT clear form on failure; allow visitor to review and retry
       setErrorMessage(
-        e.message || 'An error occurred while transmitting your inquiry. Please reach out to support@novahunger.com.'
+        e.message || 'An error occurred while transmitting your message. Please check your network and try again.'
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const minLen = settings.minMessageLength || 10;
+  const maxLen = settings.maxMessageLength || 2000;
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
+      {/* Header section (dynamically loaded from admin settings) */}
       <div className="text-center max-w-xl mx-auto space-y-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-orange-400">
           Support Desk
         </span>
-        <h1 className="font-display text-3xl font-extrabold text-white">Get in Touch</h1>
-        <p className="text-xs text-stone-400">
-          Need assistance with a live order, rider inquiry, or restaurant listing?
+        <h1 className="font-display text-3xl font-extrabold text-white">
+          {settings.heading}
+        </h1>
+        <p className="text-xs text-stone-400 leading-relaxed">
+          {settings.description}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <div className="md:col-span-5 space-y-6">
-          <div className="p-6 rounded-2xl bg-[#121316] border border-stone-800 space-y-4">
-            <h3 className="font-bold text-sm text-stone-100">Headquarters</h3>
-            <div className="space-y-3 text-xs text-stone-400">
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-orange-400 shrink-0" />
-                <span>+1 (555) 019-NOVA (24/7 Desk)</span>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        {/* Support Information Card (editable via Admin Dashboard) */}
+        {settings.showContactDetails && (
+          <div className="md:col-span-5 space-y-6">
+            <div className="p-6 rounded-3xl bg-[#121316] border border-stone-800 space-y-4 shadow-xl">
+              <h2 className="font-display font-bold text-sm text-stone-100">
+                {settings.supportCardHeading}
+              </h2>
+              <div className="space-y-3.5 text-xs text-stone-300">
+                <div className="flex items-start gap-3">
+                  <Phone className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-stone-200">Phone Support</span>
+                    <a
+                      href={`tel:${settings.supportPhone.replace(/[^0-9+]/g, '')}`}
+                      className="hover:text-orange-400 transition-colors"
+                    >
+                      {settings.supportPhone}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-stone-200">Email Inquiries</span>
+                    <a
+                      href={`mailto:${settings.supportEmail}`}
+                      className="hover:text-orange-400 transition-colors break-all"
+                    >
+                      {settings.supportEmail}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-stone-200">Headquarters</span>
+                    <span className="text-stone-400">{settings.businessAddress}</span>
+                  </div>
+                </div>
+
+                {settings.showOperatingHours && (
+                  <div className="flex items-start gap-3 pt-2 border-t border-stone-800/80">
+                    <Clock className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold block text-stone-200">Operating Hours</span>
+                      <span className="text-stone-400">{settings.operatingHours}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-orange-400 shrink-0" />
-                <span>support@novahunger.com</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="w-4 h-4 text-orange-400 shrink-0" />
-                <span>400 Central Plaza, Metropolis</span>
-              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#0F1013] border border-stone-800/80 text-[11px] text-stone-400 space-y-2">
+              <span className="font-semibold text-stone-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Verified Direct Support</span>
+              </span>
+              <p className="leading-relaxed">
+                All submitted tickets are directly assigned to our operations team and logged into our secure dispatch system.
+              </p>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="md:col-span-7">
-          <form
-            onSubmit={handleSubmit}
-            className="p-6 sm:p-8 rounded-3xl bg-[#121316] border border-stone-800 space-y-4"
-          >
-            {isEscalatedFromChat && (
-              <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-start gap-2.5 text-xs text-purple-300">
-                <Sparkles className="w-4 h-4 text-[#8B5CF6] shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <span className="font-bold text-white block">Inquiry Escalated from Nova AI Assistant</span>
-                  <p className="text-[11px] text-purple-200">
-                    Your conversation summary has been attached below. Please review your details and message, then submit when ready.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {ticketNumber && responseMsg && (
-              <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold text-white">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px]">
-                    Ticket #{ticketNumber}
-                  </span>
-                  <span>Logged & Received</span>
-                </div>
-                <p className="text-xs text-emerald-200 leading-relaxed">{responseMsg}</p>
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
-                {errorMessage}
-              </div>
-            )}
-
-            {/* Anti-spam honeypot field (hidden from genuine users) */}
-            <div className="hidden" aria-hidden="true">
-              <label htmlFor="contact_hp_check">Do not fill this field</label>
-              <input
-                id="contact_hp_check"
-                type="text"
-                tabIndex={-1}
-                autoComplete="off"
-                value={honeypot}
-                onChange={(e) => setHoneypot(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="contact_name" className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Your Full Name <span className="text-orange-400">*</span>
-              </label>
-              <input
-                id="contact_name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Elena Rostova"
-                className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="contact_email" className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Email Address <span className="text-orange-400">*</span>
-              </label>
-              <input
-                id="contact_email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="elena@example.com"
-                className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="contact_subject" className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Subject
-              </label>
-              <input
-                id="contact_subject"
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Order tracking inquiry / Feedback"
-                className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="contact_message" className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Message <span className="text-orange-400">*</span>
-              </label>
-              <textarea
-                id="contact_message"
-                rows={4}
-                required
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="How can our support team assist you today?"
-                className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 text-xs font-bold text-black bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2"
+        {/* Contact Form Container */}
+        <div className={settings.showContactDetails ? 'md:col-span-7' : 'md:col-span-12 max-w-2xl mx-auto w-full'}>
+          {settings.formEnabled ? (
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="p-6 sm:p-8 rounded-3xl bg-[#121316] border border-stone-800 space-y-4 shadow-xl"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? 'Transmitting...' : 'Send Message'}</span>
-            </button>
-          </form>
+              {/* Optional user autofill helper - strictly user-controlled */}
+              {user && !hasAutofilled && (!name || !email) && (
+                <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-stone-300 truncate">
+                    <User className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                    <span className="truncate">Signed in as <strong className="text-white">{user.name}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAutofillUser}
+                    className="text-[11px] font-bold text-orange-400 hover:text-orange-300 underline whitespace-nowrap"
+                  >
+                    Use my details
+                  </button>
+                </div>
+              )}
+
+              {/* Chat escalation alert */}
+              {isEscalatedFromChat && (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-start gap-2.5 text-xs text-purple-300">
+                  <Sparkles className="w-4 h-4 text-[#8B5CF6] shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-white block">Inquiry Escalated from Nova AI Assistant</span>
+                    <p className="text-[11px] text-purple-200">
+                      Your conversation summary has been attached below. Please enter your contact details and message, then submit when ready.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Success confirmation banner */}
+              {ticketNumber && responseMsg && (
+                <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 font-bold text-white">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px]">
+                      Ticket #{ticketNumber}
+                    </span>
+                    <span>Received & Queued</span>
+                  </div>
+                  <p className="text-xs text-emerald-200 leading-relaxed">{responseMsg}</p>
+                  <div className="text-[11px] text-emerald-400/90 pt-1 flex items-center gap-1.5">
+                    <Check className="w-3 h-3 text-emerald-400" />
+                    <span>
+                      {emailSent
+                        ? 'Notification dispatched to support team.'
+                        : 'Message securely logged in database for support review.'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Accessible error banner */}
+              {errorMessage && (
+                <div
+                  role="alert"
+                  className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2"
+                >
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 leading-relaxed">{errorMessage}</div>
+                </div>
+              )}
+
+              {/* Anti-spam honeypot field (hidden from genuine users, traps bots) */}
+              <div className="hidden" aria-hidden="true">
+                <label htmlFor="contact_hp_field">Leave this field empty</label>
+                <input
+                  id="contact_hp_field"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </div>
+
+              {/* Full Name Input */}
+              <div>
+                <label htmlFor="contact_name" className="text-[11px] font-semibold text-stone-300 block mb-1">
+                  Full Name <span className="text-orange-400">*</span>
+                </label>
+                <input
+                  id="contact_name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  maxLength={100}
+                  className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none focus:border-orange-500 transition-colors"
+                />
+              </div>
+
+              {/* Email Address Input */}
+              <div>
+                <label htmlFor="contact_email" className="text-[11px] font-semibold text-stone-300 block mb-1">
+                  Email Address <span className="text-orange-400">*</span>
+                </label>
+                <input
+                  id="contact_email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  maxLength={120}
+                  className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none focus:border-orange-500 transition-colors"
+                />
+              </div>
+
+              {/* Subject Input (configurable visibility & requirement) */}
+              {settings.showSubject && (
+                <div>
+                  <label htmlFor="contact_subject" className="text-[11px] font-semibold text-stone-300 block mb-1">
+                    Subject {settings.subjectRequired && <span className="text-orange-400">*</span>}
+                  </label>
+                  <input
+                    id="contact_subject"
+                    type="text"
+                    required={settings.subjectRequired}
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Enter your subject"
+                    maxLength={200}
+                    className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                </div>
+              )}
+
+              {/* Message Textarea */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="contact_message" className="text-[11px] font-semibold text-stone-300">
+                    Message <span className="text-orange-400">*</span>
+                  </label>
+                  <span className="text-[10px] text-stone-500 tabular-nums">
+                    {message.length} / {maxLen}
+                  </span>
+                </div>
+                <textarea
+                  id="contact_message"
+                  rows={5}
+                  required
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="How can we help you?"
+                  maxLength={maxLen}
+                  className="w-full bg-[#18191E] border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder:text-stone-600 focus:outline-none focus:border-orange-500 transition-colors resize-y min-h-[100px]"
+                />
+                <span className="text-[10px] text-stone-500 block mt-0.5">
+                  Minimum {minLen} characters required.
+                </span>
+              </div>
+
+              {/* Privacy Notice */}
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                We respect your privacy. The information you submit will only be used by our support team to respond to your inquiry.
+              </p>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 text-xs font-bold text-black bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl hover:opacity-95 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Transmitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Send Message</span>
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Disabled Form State */
+            <div className="p-8 rounded-3xl bg-[#121316] border border-stone-800 space-y-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center mx-auto">
+                <Mail className="w-6 h-6" />
+              </div>
+              <h3 className="font-display font-bold text-base text-white">
+                Contact Form Temporarily Paused
+              </h3>
+              <p className="text-xs text-stone-400 max-w-md mx-auto leading-relaxed">
+                The online contact form is temporarily offline for maintenance. Please reach our direct support team at{' '}
+                <a
+                  href={`mailto:${settings.supportEmail}`}
+                  className="text-orange-400 font-semibold hover:underline"
+                >
+                  {settings.supportEmail}
+                </a>{' '}
+                or call us at{' '}
+                <a
+                  href={`tel:${settings.supportPhone.replace(/[^0-9+]/g, '')}`}
+                  className="text-orange-400 font-semibold hover:underline"
+                >
+                  {settings.supportPhone}
+                </a>
+                .
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 
 // -------------------------------------------------------------
 // FAQ VIEW

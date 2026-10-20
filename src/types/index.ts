@@ -329,6 +329,35 @@ export interface ContactInquiry {
   adminNotes?: string;
 }
 
+export interface ContactPageSettings {
+  // Business contact information
+  supportPhone: string;
+  supportEmail: string;
+  businessAddress: string;
+  heading: string;
+  description: string;
+  supportCardHeading: string;
+
+  // Contact form configuration
+  formEnabled: boolean;
+  showSubject: boolean;
+  subjectRequired: boolean;
+  confirmationMessage: string;
+  notificationEmail: string;
+  minMessageLength: number;
+  maxMessageLength: number;
+
+  // Footer and display settings
+  showContactDetails: boolean;
+  showOperatingHours: boolean;
+  operatingHours: string;
+
+  // Metadata
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+
 export interface ChatbotSettings {
   enabled: boolean;
   botName: string;

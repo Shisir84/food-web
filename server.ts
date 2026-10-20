@@ -27,6 +27,7 @@ import type {
   BackgroundStudioConfig,
   BackgroundRevision,
   BackgroundTargetScene,
+  ContactPageSettings,
 } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2767,7 +2768,171 @@ ${specificOrderText}`;
   });
 });
 
-// POST /api/contact - Connected Contact Form with Spam Protection & Persistent Storage
+// Helper: Escape HTML to prevent injection in outgoing email notifications
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Helper: Sanitize headers to prevent email header injection attacks
+function sanitizeHeader(str: string): string {
+  return str.replace(/[\r\n]+/g, ' ').trim();
+}
+
+// -------------------------------------------------------------
+// PUBLIC & ADMIN CONTACT SETTINGS ENDPOINTS
+// -------------------------------------------------------------
+
+// GET /api/contact/settings - Public contact configuration (no admin credentials leaked)
+app.get('/api/contact/settings', (_req: Request, res: Response) => {
+  const settings = (db.get('contactSettings') as ContactPageSettings) || {
+    supportPhone: '+1 (555) 019-NOVA',
+    supportEmail: 'support@novahunger.com',
+    businessAddress: '400 Central Plaza, Metropolis',
+    heading: 'Get in Touch',
+    description: 'Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.',
+    supportCardHeading: 'Headquarters & Support Desk',
+    formEnabled: true,
+    showSubject: true,
+    subjectRequired: false,
+    confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+    notificationEmail: 'support@novahunger.com',
+    minMessageLength: 10,
+    maxMessageLength: 2000,
+    showContactDetails: true,
+    showOperatingHours: true,
+    operatingHours: '24/7 Priority Support Desk',
+  };
+
+  res.json({
+    supportPhone: settings.supportPhone || '+1 (555) 019-NOVA',
+    supportEmail: settings.supportEmail || 'support@novahunger.com',
+    businessAddress: settings.businessAddress || '400 Central Plaza, Metropolis',
+    heading: settings.heading || 'Get in Touch',
+    description: settings.description || 'Need assistance with a live order, courier fleet inquiry, or restaurant listing?',
+    supportCardHeading: settings.supportCardHeading || 'Headquarters & Support Desk',
+    formEnabled: settings.formEnabled !== false,
+    showSubject: settings.showSubject !== false,
+    subjectRequired: !!settings.subjectRequired,
+    confirmationMessage: settings.confirmationMessage || 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+    minMessageLength: settings.minMessageLength || 10,
+    maxMessageLength: settings.maxMessageLength || 2000,
+    showContactDetails: settings.showContactDetails !== false,
+    showOperatingHours: settings.showOperatingHours !== false,
+    operatingHours: settings.operatingHours || '24/7 Priority Support Desk',
+  });
+});
+
+// GET /api/admin/contact/settings - Authenticated Admin Contact Configuration
+app.get('/api/admin/contact/settings', requireAdmin, (_req: Request, res: Response) => {
+  const settings = (db.get('contactSettings') as ContactPageSettings) || {
+    supportPhone: '+1 (555) 019-NOVA',
+    supportEmail: 'support@novahunger.com',
+    businessAddress: '400 Central Plaza, Metropolis',
+    heading: 'Get in Touch',
+    description: 'Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.',
+    supportCardHeading: 'Headquarters & Support Desk',
+    formEnabled: true,
+    showSubject: true,
+    subjectRequired: false,
+    confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+    notificationEmail: 'support@novahunger.com',
+    minMessageLength: 10,
+    maxMessageLength: 2000,
+    showContactDetails: true,
+    showOperatingHours: true,
+    operatingHours: '24/7 Priority Support Desk',
+  };
+
+  res.json({
+    settings,
+    emailProviderConfigured: !!(process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY || process.env.GMAIL_ACCESS_TOKEN),
+    availableProviders: [
+      process.env.RESEND_API_KEY ? 'Resend' : null,
+      process.env.SENDGRID_API_KEY ? 'SendGrid' : null,
+      process.env.GMAIL_ACCESS_TOKEN ? 'Gmail API' : null,
+    ].filter(Boolean),
+  });
+});
+
+// POST /api/admin/contact/settings - Update Contact Page Configuration (Strict Admin Only)
+app.post('/api/admin/contact/settings', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const current = (db.get('contactSettings') as ContactPageSettings) || ({} as Partial<ContactPageSettings>);
+  const {
+    supportPhone,
+    supportEmail,
+    businessAddress,
+    heading,
+    description,
+    supportCardHeading,
+    formEnabled,
+    showSubject,
+    subjectRequired,
+    confirmationMessage,
+    notificationEmail,
+    minMessageLength,
+    maxMessageLength,
+    showContactDetails,
+    showOperatingHours,
+    operatingHours,
+  } = req.body;
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (supportEmail && !emailRegex.test(supportEmail.trim())) {
+    return res.status(400).json({ error: 'Please enter a valid support email address.' });
+  }
+  if (notificationEmail && !emailRegex.test(notificationEmail.trim())) {
+    return res.status(400).json({ error: 'Please enter a valid notification recipient email address.' });
+  }
+
+  const minLen = typeof minMessageLength === 'number' ? Math.max(1, Math.min(minMessageLength, 500)) : (current.minMessageLength || 10);
+  const maxLen = typeof maxMessageLength === 'number' ? Math.max(minLen + 10, Math.min(maxMessageLength, 10000)) : (current.maxMessageLength || 2000);
+
+  const updated: ContactPageSettings = {
+    supportPhone: supportPhone ? supportPhone.trim() : (current.supportPhone || '+1 (555) 019-NOVA'),
+    supportEmail: supportEmail ? supportEmail.trim().toLowerCase() : (current.supportEmail || 'support@novahunger.com'),
+    businessAddress: businessAddress ? businessAddress.trim() : (current.businessAddress || '400 Central Plaza, Metropolis'),
+    heading: heading ? heading.trim() : (current.heading || 'Get in Touch'),
+    description: description ? description.trim() : (current.description || 'Need assistance with a live order, courier fleet inquiry, or restaurant listing?'),
+    supportCardHeading: supportCardHeading ? supportCardHeading.trim() : (current.supportCardHeading || 'Headquarters & Support Desk'),
+    formEnabled: formEnabled !== undefined ? !!formEnabled : (current.formEnabled !== false),
+    showSubject: showSubject !== undefined ? !!showSubject : (current.showSubject !== false),
+    subjectRequired: subjectRequired !== undefined ? !!subjectRequired : !!current.subjectRequired,
+    confirmationMessage: confirmationMessage ? confirmationMessage.trim() : (current.confirmationMessage || 'Thank you! Your message has been submitted successfully. Our support team will review it soon.'),
+    notificationEmail: notificationEmail ? notificationEmail.trim().toLowerCase() : (current.notificationEmail || 'support@novahunger.com'),
+    minMessageLength: minLen,
+    maxMessageLength: maxLen,
+    showContactDetails: showContactDetails !== undefined ? !!showContactDetails : (current.showContactDetails !== false),
+    showOperatingHours: showOperatingHours !== undefined ? !!showOperatingHours : (current.showOperatingHours !== false),
+    operatingHours: operatingHours ? operatingHours.trim() : (current.operatingHours || '24/7 Priority Support Desk'),
+    updatedAt: new Date().toISOString(),
+    updatedBy: admin.email || admin.name,
+  };
+
+  db.set('contactSettings', updated);
+
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'UPDATE_CONTACT_PAGE_SETTINGS',
+    targetType: 'settings',
+    targetId: 'contact',
+    details: `Updated Contact Page settings: Support Email=${updated.supportEmail}, Phone=${updated.supportPhone}, FormEnabled=${updated.formEnabled}.`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, settings: updated });
+});
+
+// POST /api/contact - Real Working Contact Form with Server-side Validation, Spam Protection, & Multi-Provider Email Delivery
 app.post('/api/contact', async (req: Request, res: Response) => {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
 
@@ -2783,106 +2948,253 @@ app.post('/api/contact', async (req: Request, res: Response) => {
     });
   }
 
-  const { name, email, subject, message } = req.body;
-
-  if (!name || typeof name !== 'string' || name.trim().length < 2) {
-    return res.status(400).json({ error: 'Please enter your full name (minimum 2 characters).' });
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
-    return res.status(400).json({ error: 'Please provide a valid email address (e.g., name@example.com).' });
-  }
-
-  if (!message || typeof message !== 'string' || message.trim().length < 10) {
-    return res.status(400).json({ error: 'Please provide a detailed inquiry message (minimum 10 characters).' });
-  }
-
-  const emailSettings = db.get('emailSettings') || {
-    businessEmail: 'shisirtharu51@gmail.com',
-    gmailConnected: false,
-    gmailAccount: 'shisirtharu51@gmail.com',
+  const contactSettings = (db.get('contactSettings') as ContactPageSettings) || {
+    supportPhone: '+1 (555) 019-NOVA',
+    supportEmail: 'support@novahunger.com',
+    businessAddress: '400 Central Plaza, Metropolis',
+    heading: 'Get in Touch',
+    description: 'Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.',
+    supportCardHeading: 'Headquarters & Support Desk',
+    formEnabled: true,
+    showSubject: true,
+    subjectRequired: false,
+    confirmationMessage: 'Thank you! Your message has been submitted successfully. Our support team will review it soon.',
+    notificationEmail: 'support@novahunger.com',
+    minMessageLength: 10,
+    maxMessageLength: 2000,
+    showContactDetails: true,
+    showOperatingHours: true,
+    operatingHours: '24/7 Priority Support Desk',
   };
 
-  const destinationEmail = emailSettings.businessEmail || 'shisirtharu51@gmail.com';
+  // Validate if contact form is currently enabled
+  if (contactSettings.formEnabled === false) {
+    return res.status(403).json({
+      error: 'The contact inquiry form is temporarily disabled by platform administration. Please contact support directly by phone or email.',
+    });
+  }
+
+  const { name, email, subject, message } = req.body;
+
+  // 1. Validate Full Name
+  if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
+    return res.status(400).json({ error: 'Please enter your full name (between 2 and 100 characters).' });
+  }
+  const cleanName = sanitizeHeader(name.trim());
+
+  // 2. Validate & Normalize Email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || typeof email !== 'string' || !emailRegex.test(email.trim()) || email.trim().length > 120) {
+    return res.status(400).json({ error: 'Please provide a valid email address (e.g., name@example.com).' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+
+  // 3. Validate Subject
+  let cleanSubject = 'General Support Request';
+  if (subject && typeof subject === 'string') {
+    cleanSubject = sanitizeHeader(subject.trim()).slice(0, 200) || 'General Support Request';
+  } else if (contactSettings.showSubject && contactSettings.subjectRequired) {
+    return res.status(400).json({ error: 'Inquiry subject is required.' });
+  }
+
+  // 4. Validate Message Length
+  const minLen = contactSettings.minMessageLength ?? 10;
+  const maxLen = contactSettings.maxMessageLength ?? 2000;
+
+  if (!message || typeof message !== 'string' || message.trim().length < minLen) {
+    return res.status(400).json({ error: `Please provide an inquiry message of at least ${minLen} characters.` });
+  }
+  if (message.trim().length > maxLen) {
+    return res.status(400).json({ error: `Message exceeds the allowed limit of ${maxLen} characters.` });
+  }
+  const cleanMessage = message.trim();
+
+  // Destination recipient: Admin configured support email
+  const destinationEmail = contactSettings.notificationEmail || contactSettings.supportEmail || 'support@novahunger.com';
   const ticketNumber = `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
   const inquiryId = `inq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const submissionTimestamp = new Date().toISOString();
 
-  // Record contact inquiry in persistent storage
-  const inquiries = db.get('contactInquiries') || [];
   let emailSent = false;
-  let emailDeliveryStatus = 'stored_locally_awaiting_gmail_auth';
+  let emailDeliveryStatus = 'stored_locally_awaiting_email_config';
 
-  // Attempt live Gmail dispatch if an active OAuth bearer token or credentials exist
-  const authHeader = req.headers.authorization;
-  const gmailToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (process.env.GMAIL_ACCESS_TOKEN || null);
+  // Construct safe HTML and Plain Text email payloads
+  const emailSubject = `New Contact Message — Nova Hunger Food [${ticketNumber}]`;
+  const plainTextBody = [
+    `NOVA HUNGER FOOD — NEW CUSTOMER INQUIRY`,
+    `========================================`,
+    `Ticket Reference: ${ticketNumber}`,
+    `Submitted At:     ${submissionTimestamp}`,
+    `Sender Name:      ${cleanName}`,
+    `Sender Email:     ${cleanEmail} (Reply-To)`,
+    `Subject:          ${cleanSubject}`,
+    ``,
+    `Message:`,
+    `----------------------------------------`,
+    cleanMessage,
+    ``,
+    `----------------------------------------`,
+    `Dispatched securely from Nova Hunger Food Support Gateway.`,
+  ].join('\r\n');
 
-  if (gmailToken && emailSettings.gmailConnected) {
+  const safeHtmlBody = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #0B0B0D; color: #FFFFFF; border-radius: 16px; border: 1px solid #2B2B30;">
+      <div style="margin-bottom: 20px; border-bottom: 1px solid #2B2B30; padding-bottom: 16px;">
+        <span style="color: #FF7900; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Nova Hunger Food &bull; Support Desk</span>
+        <h2 style="margin: 8px 0 4px; font-size: 20px; font-weight: 800; color: #FFFFFF;">New Contact Message Received</h2>
+        <span style="font-family: monospace; font-size: 13px; color: #FF9D00;">Ticket Ref: ${ticketNumber}</span>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+        <tr><td style="padding: 6px 0; color: #888890; width: 130px;">Sender Name:</td><td style="padding: 6px 0; color: #FFFFFF; font-weight: 600;">${escapeHtml(cleanName)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888890;">Reply-To Email:</td><td style="padding: 6px 0; color: #FF9D00;"><a href="mailto:${escapeHtml(cleanEmail)}" style="color: #FF9D00; text-decoration: none;">${escapeHtml(cleanEmail)}</a></td></tr>
+        <tr><td style="padding: 6px 0; color: #888890;">Category / Subject:</td><td style="padding: 6px 0; color: #FFFFFF;">${escapeHtml(cleanSubject)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888890;">Submission Time:</td><td style="padding: 6px 0; color: #FFFFFF;">${submissionTimestamp}</td></tr>
+      </table>
+      <div style="background: #151518; border: 1px solid #2B2B30; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+        <div style="font-size: 11px; font-weight: 700; color: #888890; text-transform: uppercase; margin-bottom: 8px;">Customer Inquiry Message</div>
+        <div style="font-size: 13px; line-height: 1.6; color: #E0E0E6; white-space: pre-wrap;">${escapeHtml(cleanMessage)}</div>
+      </div>
+      <div style="border-top: 1px solid #2B2B30; padding-top: 12px; font-size: 11px; color: #666670;">
+        Dispatched securely from Nova Hunger Food Support Gateway. Reply directly to this email to respond to the visitor.
+      </div>
+    </div>
+  `;
+
+  // REAL TRANSACTIONAL EMAIL DELIVERY PIPELINE
+  // Provider 1: Resend (if RESEND_API_KEY is configured in server environment)
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
     try {
-      const emailContent = [
-        `From: me`,
-        `To: ${destinationEmail}`,
-        `Reply-To: ${email.trim()}`,
-        `Subject: Nova Hunger Food — Customer Inquiry: ${subject || 'Support Request'} [${ticketNumber}]`,
-        `Date: ${new Date().toUTCString()}`,
-        `Content-Type: text/plain; charset=UTF-8`,
-        ``,
-        `NOVA HUNGER FOOD CUSTOMER INQUIRY`,
-        `==================================`,
-        `Ticket Reference: ${ticketNumber}`,
-        `Timestamp:        ${new Date().toISOString()}`,
-        `Sender Name:      ${name.trim()}`,
-        `Sender Email:     ${email.trim()} (Reply-To)`,
-        `Inquiry Category: ${subject || 'General Inquiry'}`,
-        ``,
-        `Customer Message:`,
-        `-----------------`,
-        `${message.trim()}`,
-        ``,
-        `--`,
-        `Dispatched securely from Nova Hunger Food Support Gateway.`,
-      ].join('\r\n');
-
-      const base64UrlEmail = Buffer.from(emailContent)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-      const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      const fromAddress = process.env.EMAIL_FROM || 'Nova Hunger Support <onboarding@resend.dev>';
+      const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${gmailToken}`,
+          Authorization: `Bearer ${resendApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ raw: base64UrlEmail }),
+        body: JSON.stringify({
+          from: fromAddress,
+          to: [destinationEmail],
+          reply_to: cleanEmail,
+          subject: emailSubject,
+          html: safeHtmlBody,
+          text: plainTextBody,
+        }),
       });
 
-      if (gmailRes.ok) {
+      if (resendRes.ok) {
         emailSent = true;
         emailDeliveryStatus = 'delivered';
       } else {
-        const errText = await gmailRes.text();
-        console.warn('Gmail API delivery attempt returned non-200:', errText);
-        emailDeliveryStatus = 'gmail_api_error';
+        const errText = await resendRes.text();
+        console.warn('Resend API returned non-200:', errText);
+        emailDeliveryStatus = 'resend_api_error';
       }
     } catch (e: any) {
-      console.warn('Gmail send network error:', e.message);
-      emailDeliveryStatus = 'network_error';
+      console.warn('Resend email network error:', e.message);
+      emailDeliveryStatus = 'resend_network_error';
     }
   }
 
+  // Provider 2: SendGrid (if not yet sent and SENDGRID_API_KEY is configured)
+  if (!emailSent && process.env.SENDGRID_API_KEY) {
+    try {
+      const sendgridFrom = process.env.SENDGRID_FROM || 'support@novahunger.com';
+      const sendgridRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: destinationEmail }] }],
+          from: { email: sendgridFrom, name: 'Nova Hunger Food Support' },
+          reply_to: { email: cleanEmail, name: cleanName },
+          subject: emailSubject,
+          content: [
+            { type: 'text/plain', value: plainTextBody },
+            { type: 'text/html', value: safeHtmlBody },
+          ],
+        }),
+      });
+
+      if (sendgridRes.ok || sendgridRes.status === 202) {
+        emailSent = true;
+        emailDeliveryStatus = 'delivered';
+      } else {
+        const errText = await sendgridRes.text();
+        console.warn('SendGrid returned non-200:', errText);
+        emailDeliveryStatus = 'sendgrid_api_error';
+      }
+    } catch (e: any) {
+      console.warn('SendGrid network error:', e.message);
+      emailDeliveryStatus = 'sendgrid_network_error';
+    }
+  }
+
+  // Provider 3: Gmail API (if not yet sent and Gmail OAuth bearer token or credentials exist)
+  if (!emailSent) {
+    const authHeader = req.headers.authorization;
+    const gmailToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (process.env.GMAIL_ACCESS_TOKEN || null);
+    const emailSettings = db.get('emailSettings');
+
+    if (gmailToken && emailSettings?.gmailConnected) {
+      try {
+        const rawEmail = [
+          `From: me`,
+          `To: ${destinationEmail}`,
+          `Reply-To: ${cleanEmail}`,
+          `Subject: =?UTF-8?B?${Buffer.from(emailSubject).toString('base64')}?=`,
+          `Date: ${new Date().toUTCString()}`,
+          `MIME-Version: 1.0`,
+          `Content-Type: text/html; charset=UTF-8`,
+          ``,
+          safeHtmlBody,
+        ].join('\r\n');
+
+        const base64UrlEmail = Buffer.from(rawEmail)
+          .toString('base64')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+
+        const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${gmailToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ raw: base64UrlEmail }),
+        });
+
+        if (gmailRes.ok) {
+          emailSent = true;
+          emailDeliveryStatus = 'delivered';
+        } else {
+          const errText = await gmailRes.text();
+          console.warn('Gmail API returned non-200:', errText);
+          emailDeliveryStatus = 'gmail_api_error';
+        }
+      } catch (e: any) {
+        console.warn('Gmail send network error:', e.message);
+        emailDeliveryStatus = 'network_error';
+      }
+    }
+  }
+
+  // Record contact inquiry in persistent storage
+  const inquiries = db.get('contactInquiries') || [];
   const newInquiry: ContactInquiry = {
     id: inquiryId,
     ticketNumber,
-    name: name.trim(),
-    email: email.trim().toLowerCase(),
-    subject: subject ? subject.trim() : 'General Support Request',
-    message: message.trim(),
+    name: cleanName,
+    email: cleanEmail,
+    subject: cleanSubject,
+    message: cleanMessage,
     status: 'new',
     emailSent,
     emailDeliveryStatus,
-    createdAt: new Date().toISOString(),
+    createdAt: submissionTimestamp,
   };
 
   inquiries.unshift(newInquiry);
@@ -2893,27 +3205,28 @@ app.post('/api/contact', async (req: Request, res: Response) => {
   auditLogs.unshift({
     id: `log_${Date.now()}`,
     adminId: 'system',
-    adminEmail: email.trim().toLowerCase(),
+    adminEmail: cleanEmail,
     action: 'CONTACT_SUPPORT_INQUIRY',
     targetType: 'user',
     targetId: inquiryId,
-    details: `Customer inquiry from ${name.trim()} (${email.trim()}): [${newInquiry.subject}] (${ticketNumber}). Delivery status: ${emailDeliveryStatus}.`,
-    timestamp: new Date().toISOString(),
+    details: `Customer inquiry from ${cleanName} (${cleanEmail}): [${cleanSubject}] (${ticketNumber}). Delivery status: ${emailDeliveryStatus}.`,
+    timestamp: submissionTimestamp,
   });
   db.set('auditLogs', auditLogs);
 
-  const successMessage = emailSent
-    ? `Thank you, ${name.trim()}! Your support inquiry has been sent to Nova Hunger Food support (${destinationEmail}) and logged under Ticket #${ticketNumber}. Our team will respond to ${email.trim()} shortly.`
-    : `Thank you, ${name.trim()}! Your support ticket #${ticketNumber} has been received and logged in our system. Our support team will review your inquiry and reply to ${email.trim()} shortly.`;
+  // Provide clear and honest response based on delivery confirmation
+  const confirmationMsg = contactSettings.confirmationMessage || 'Thank you! Your message has been submitted successfully. Our support team will review it soon.';
 
   res.status(201).json({
     success: true,
     ticketNumber,
-    message: successMessage,
+    message: confirmationMsg,
     destinationEmail,
+    emailSent,
     emailDeliveryStatus,
   });
 });
+
 
 // -------------------------------------------------------------
 // ADMIN CHATBOT, GMAIL & INQUIRIES CONTROL ENDPOINTS
@@ -3087,6 +3400,37 @@ app.post('/api/admin/inquiries/:id/status', requireAdmin, (req: Request, res: Re
 
   res.json({ success: true, inquiry });
 });
+
+// DELETE /api/admin/inquiries/:id - Remove inquiry ticket
+app.delete('/api/admin/inquiries/:id', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const inquiries = db.get('contactInquiries') || [];
+  const index = inquiries.findIndex((i) => i.id === req.params.id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'Inquiry not found' });
+  }
+
+  const deletedInquiry = inquiries[index];
+  inquiries.splice(index, 1);
+  db.set('contactInquiries', inquiries);
+
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'DELETE_INQUIRY',
+    targetType: 'user',
+    targetId: deletedInquiry.id,
+    details: `Deleted support inquiry ticket ${deletedInquiry.ticketNumber} from ${deletedInquiry.email}.`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, message: `Ticket #${deletedInquiry.ticketNumber} removed successfully.` });
+});
+
 
 // GET /api/admin/system/health - Status indicator without exposing secrets
 app.get('/api/admin/system/health', requireAdmin, (_req: Request, res: Response) => {

@@ -351,7 +351,8 @@
     "tok_customer_1792413788920_rcajfa7": "usr_customer_1",
     "tok_customer_1792414924946_xfm0w76": "usr_customer_1",
     "tok_social_1792480301275_kcxbb2u": "usr_customer_1",
-    "tok_customer_1792480306169_ro9ld0i": "usr_customer_1"
+    "tok_customer_1792480306169_ro9ld0i": "usr_customer_1",
+    "tok_admin_1792486692513_o0z5vlo": "usr_admin"
   },
   "riders": [
     {
@@ -1820,6 +1821,46 @@
   ],
   "auditLogs": [
     {
+      "id": "log_1792486722023",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_CONTACT_PAGE_SETTINGS",
+      "targetType": "settings",
+      "targetId": "contact",
+      "details": "Updated Contact Page settings: Support Email=support@novahunger.com, Phone=+1 (555) 019-NOVA, FormEnabled=true.",
+      "timestamp": "2026-10-20T08:58:42.023Z"
+    },
+    {
+      "id": "log_1792486705135",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "UPDATE_CONTACT_PAGE_SETTINGS",
+      "targetType": "settings",
+      "targetId": "contact",
+      "details": "Updated Contact Page settings: Support Email=desk@novahunger.com, Phone=+1 (555) 777-NOVA, FormEnabled=true.",
+      "timestamp": "2026-10-20T08:58:25.135Z"
+    },
+    {
+      "id": "log_1792486692518",
+      "adminId": "usr_admin",
+      "adminEmail": "admin@novahunger.com",
+      "action": "ADMIN_AUTHENTICATION_SUCCESS",
+      "targetType": "system",
+      "targetId": "usr_admin",
+      "details": "Administrator authenticated via Admin Portal (Session valid until 10/21/2026, 8:58:12 AM).",
+      "timestamp": "2026-10-20T08:58:12.526Z"
+    },
+    {
+      "id": "log_1792486664650",
+      "adminId": "system",
+      "adminEmail": "alex.rivera@example.com",
+      "action": "CONTACT_SUPPORT_INQUIRY",
+      "targetType": "user",
+      "targetId": "inq_1792486664649_d5p1x",
+      "details": "Customer inquiry from Alex Rivera (alex.rivera@example.com): [Fleet Delivery Question] (TKT-445008). Delivery status: stored_locally_awaiting_email_config.",
+      "timestamp": "2026-10-20T08:57:44.649Z"
+    },
+    {
       "id": "log_1792480292496",
       "adminId": "system",
       "adminEmail": "system@novahunger.com",
@@ -2519,9 +2560,22 @@
     "tok_customer_1792413788920_rcajfa7": 1792500188921,
     "tok_customer_1792414924946_xfm0w76": 1792501324947,
     "tok_social_1792480301275_kcxbb2u": 1795072301276,
-    "tok_customer_1792480306169_ro9ld0i": 1795072306171
+    "tok_customer_1792480306169_ro9ld0i": 1795072306171,
+    "tok_admin_1792486692513_o0z5vlo": 1792573092516
   },
   "contactInquiries": [
+    {
+      "id": "inq_1792486664649_d5p1x",
+      "ticketNumber": "TKT-445008",
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example.com",
+      "subject": "Fleet Delivery Question",
+      "message": "Hello Nova support team, could you please confirm delivery coverage hours in downtown Metropolis?",
+      "status": "new",
+      "emailSent": false,
+      "emailDeliveryStatus": "stored_locally_awaiting_email_config",
+      "createdAt": "2026-10-20T08:57:44.649Z"
+    },
     {
       "id": "inq_1792414993341_bjedt",
       "ticketNumber": "TKT-903619",
@@ -2557,19 +2611,6 @@
       "emailSent": false,
       "emailDeliveryStatus": "stored_locally_awaiting_gmail_auth",
       "createdAt": "2026-10-19T12:14:20.300Z"
-    },
-    {
-      "id": "inq_demo_1",
-      "ticketNumber": "TKT-104921",
-      "name": "Elena Rostova",
-      "email": "customer@novahunger.com",
-      "subject": "Delivery Instructions update",
-      "message": "Hi, I wanted to confirm if the rider can ring the intercom twice upon arrival. Thank you!",
-      "status": "resolved",
-      "emailSent": true,
-      "emailDeliveryStatus": "delivered",
-      "createdAt": "2026-10-18T10:15:00.000Z",
-      "resolvedAt": "2026-10-18T10:30:00.000Z"
     }
   ],
   "chatbotSettings": {
@@ -2591,5 +2632,25 @@
     "gmailConnected": false,
     "gmailAccount": "shisirtharu51@gmail.com",
     "lastChecked": "2026-10-19T04:45:00.000Z"
+  },
+  "contactSettings": {
+    "supportPhone": "+1 (555) 019-NOVA",
+    "supportEmail": "support@novahunger.com",
+    "businessAddress": "400 Central Plaza, Metropolis",
+    "heading": "Get in Touch",
+    "description": "Need assistance with a live order, courier fleet inquiry, or restaurant listing? Our support team is here to assist.",
+    "supportCardHeading": "Headquarters & Support Desk",
+    "formEnabled": true,
+    "showSubject": true,
+    "subjectRequired": false,
+    "confirmationMessage": "Thank you! Your message has been submitted successfully. Our support team will review it soon.",
+    "notificationEmail": "support@novahunger.com",
+    "minMessageLength": 10,
+    "maxMessageLength": 2000,
+    "showContactDetails": true,
+    "showOperatingHours": true,
+    "operatingHours": "24/7 Priority Support Desk",
+    "updatedAt": "2026-10-20T08:58:42.021Z",
+    "updatedBy": "admin@novahunger.com"
   }
 }

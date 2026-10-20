@@ -16,7 +16,9 @@ import {
   ContactInquiry,
   ChatbotSettings,
   EmailSettings,
+  ContactPageSettings,
 } from '../types/index.ts';
+
 
 const TOKEN_KEY = 'nova_hunger_token';
 const LEGACY_TOKEN_KEY = 'nove_token';
@@ -384,10 +386,48 @@ export const api = {
       ticketNumber: string;
       message: string;
       destinationEmail: string;
+      emailSent: boolean;
       emailDeliveryStatus: string;
     }>('/api/contact', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  },
+
+  async getPublicContactSettings() {
+    return this.request<ContactPageSettings>('/api/contact/settings');
+  },
+
+  async getAdminContactSettings() {
+    return this.request<{
+      settings: ContactPageSettings;
+      emailProviderConfigured: boolean;
+      availableProviders: string[];
+    }>('/api/admin/contact/settings');
+  },
+
+  async saveAdminContactSettings(settings: Partial<ContactPageSettings>) {
+    return this.request<{ success: boolean; settings: ContactPageSettings }>('/api/admin/contact/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    });
+  },
+
+  async getAdminInquiries(params?: { status?: string; search?: string }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request<ContactInquiry[]>(`/api/admin/inquiries${query ? `?${query}` : ''}`);
+  },
+
+  async updateAdminInquiryStatus(id: string, status: string, adminNotes?: string) {
+    return this.request<{ success: boolean; inquiry: ContactInquiry }>(`/api/admin/inquiries/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status, adminNotes }),
+    });
+  },
+
+  async deleteAdminInquiry(id: string) {
+    return this.request<{ success: boolean; message: string }>(`/api/admin/inquiries/${id}`, {
+      method: 'DELETE',
     });
   },
 
@@ -447,17 +487,7 @@ export const api = {
     });
   },
 
-  async getAdminInquiries(params?: { status?: string; search?: string }) {
-    const query = new URLSearchParams(params as any).toString();
-    return this.request<ContactInquiry[]>(`/api/admin/inquiries${query ? `?${query}` : ''}`);
-  },
 
-  async updateAdminInquiryStatus(id: string, status: string, adminNotes?: string) {
-    return this.request<{ success: boolean; inquiry: ContactInquiry }>(`/api/admin/inquiries/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status, adminNotes }),
-    });
-  },
 
   async getAdminSystemHealth() {
     return this.request<{
