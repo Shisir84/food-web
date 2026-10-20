@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Bike, Store, Shield, CheckCircle2, Sparkles, Sun } from 'lucide-react';
+import { User, Bike, Store, Shield } from 'lucide-react';
 import { SignInForm } from './SignInForm.tsx';
 import { SignUpForm } from './SignUpForm.tsx';
 import { ForgotPasswordForm } from './ForgotPasswordForm.tsx';
@@ -72,33 +72,33 @@ export const DaybreakAuthCard: React.FC<DaybreakAuthCardProps> = ({
     <div
       onMouseEnter={() => setIsCardHovered(true)}
       onMouseLeave={() => setIsCardHovered(false)}
-      className="relative w-full max-w-md mx-auto rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all duration-1000 select-none"
+      className="relative w-full max-w-md mx-auto rounded-3xl p-6 sm:p-8 backdrop-blur-2xl select-none"
       style={{
-        background: 'linear-gradient(160deg, rgba(20, 29, 48, 0.88) 0%, rgba(17, 26, 46, 0.95) 100%)',
-        border: '1px solid rgba(255, 213, 138, 0.24)',
+        background: 'linear-gradient(160deg, rgba(17, 26, 46, 0.92) 0%, rgba(13, 20, 36, 0.97) 100%)',
+        border: '1px solid rgba(255, 213, 138, 0.28)',
         boxShadow: isCardHovered
-          ? '0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 45px -5px rgba(241, 139, 88, 0.28)'
-          : '0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(241, 139, 88, 0.16)',
+          ? '0 30px 70px -15px rgba(0, 0, 0, 0.85), 0 0 50px -5px rgba(241, 139, 88, 0.32)'
+          : '0 20px 50px -10px rgba(0, 0, 0, 0.75), 0 0 35px -5px rgba(241, 139, 88, 0.18)',
         transform: isRevealed
           ? isCardHovered
             ? 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(-2px) scale(1.005)'
             : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)'
-          : 'perspective(1200px) rotateX(12deg) rotateY(-8deg) translateY(48px) scale(0.92)',
+          : 'perspective(1200px) rotateX(10deg) rotateY(-6deg) translateY(44px) scale(0.94)',
         opacity: isRevealed ? 1 : 0,
         pointerEvents: isRevealed ? 'auto' : 'none',
-        transition: 'transform 1100ms cubic-bezier(0.16, 1, 0.3, 1), opacity 950ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 800ms ease',
+        transition: 'transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), opacity 850ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 600ms ease',
       }}
     >
-      {/* Top Warm Highlight Bar */}
+      {/* Top Champagne Gold Highlight Bar */}
       <div
         className="absolute top-0 left-10 right-10 h-[2px] rounded-full pointer-events-none transition-opacity duration-1000"
         style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255, 213, 138, 0.85) 50%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255, 213, 138, 0.9) 50%, transparent 100%)',
           opacity: isRevealed ? 1 : 0,
         }}
       />
 
-      {/* Header with Daybreak Logo & Portal Badge (Stagger 1) */}
+      {/* Header with Daybreak Logo & Portal Badge */}
       <div
         className={`flex items-center justify-between mb-5 transition-all duration-700 ${
           isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
@@ -113,7 +113,7 @@ export const DaybreakAuthCard: React.FC<DaybreakAuthCardProps> = ({
         </div>
       </div>
 
-      {/* Titles depending on mode (Stagger 2) */}
+      {/* Mode Titles */}
       <div
         className={`text-left mb-5 transition-all duration-700 ${
           isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
@@ -137,7 +137,7 @@ export const DaybreakAuthCard: React.FC<DaybreakAuthCardProps> = ({
               Create an account
             </h2>
             <p className="text-xs text-[#B8B8C0] mt-1 leading-relaxed">
-              Begin with Daybreak. Sign up in moments for seamless access.
+              Begin with Daybreak. Sign up in moments for seamless culinary access.
             </p>
           </>
         )}
@@ -165,7 +165,7 @@ export const DaybreakAuthCard: React.FC<DaybreakAuthCardProps> = ({
         )}
       </div>
 
-      {/* Mode Navigation Tabs (Visible on signin/signup) (Stagger 3) */}
+      {/* Mode Navigation Tabs */}
       {(viewMode === 'signin' || viewMode === 'signup') && (
         <div
           className={`flex border-b border-[#2B3B5E]/60 mb-5 transition-all duration-700 ${
@@ -211,7 +211,7 @@ export const DaybreakAuthCard: React.FC<DaybreakAuthCardProps> = ({
         </div>
       )}
 
-      {/* View Content (Stagger 4) */}
+      {/* View Content */}
       <div
         className={`transition-all duration-700 ${
           isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
@@ -269,7 +269,7 @@ export const DaybreakAuthCard: React.FC<DaybreakAuthCardProps> = ({
         )}
       </div>
 
-      {/* Bottom Switch Portal Bar (Stagger 5) */}
+      {/* Bottom Switch Portal Bar */}
       <div
         className={`mt-5 pt-4 border-t border-[#263653]/60 flex items-center justify-between text-[11px] text-[#B8B8C0] transition-all duration-700 ${
           isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'

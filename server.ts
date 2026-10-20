@@ -24,6 +24,9 @@ import type {
   ContactInquiry,
   ChatbotSettings,
   EmailSettings,
+  BackgroundStudioConfig,
+  BackgroundRevision,
+  BackgroundTargetScene,
 } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -3235,6 +3238,243 @@ app.post('/api/admin/theme/reset', requireAdmin, (req: Request, res: Response) =
   db.set('auditLogs', auditLogs);
 
   res.json({ success: true, theme: defaultTheme });
+});
+
+// -------------------------------------------------------------
+// BACKGROUND STUDIO API (DAYBREAK V3)
+// -------------------------------------------------------------
+
+const DEFAULT_BACKGROUND_CONFIGS: Record<string, any> = {
+  sunrise: {
+    targetScene: 'sunrise',
+    displayName: 'Daybreak Sunrise & Authentication',
+    mediaType: '3d-procedural',
+    focalPoint: { x: 50, y: 45 },
+    scalingMode: 'cover',
+    overlayColor: '#080D1A',
+    overlayOpacity: 0.45,
+    brightness: 1.0,
+    saturation: 1.05,
+    blur: 0,
+    parallaxIntensity: 0.65,
+    particlesEnabled: true,
+    transitionDuration: 1.2,
+    status: 'published',
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'System Default',
+  },
+  homepage: {
+    targetScene: 'homepage',
+    displayName: 'Daybreak 3D Culinary World',
+    mediaType: '3d-procedural',
+    focalPoint: { x: 50, y: 35 },
+    scalingMode: 'cover',
+    overlayColor: '#080D1A',
+    overlayOpacity: 0.35,
+    brightness: 1.0,
+    saturation: 1.1,
+    blur: 0,
+    parallaxIntensity: 0.7,
+    particlesEnabled: true,
+    transitionDuration: 1.0,
+    status: 'published',
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'System Default',
+  },
+  admin: {
+    targetScene: 'admin',
+    displayName: 'Admin Command Console',
+    mediaType: 'image',
+    desktopUrl: '',
+    focalPoint: { x: 50, y: 50 },
+    scalingMode: 'cover',
+    overlayColor: '#0B0B0D',
+    overlayOpacity: 0.85,
+    brightness: 0.95,
+    saturation: 1.0,
+    blur: 2,
+    parallaxIntensity: 0.2,
+    particlesEnabled: false,
+    transitionDuration: 0.8,
+    status: 'published',
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'System Default',
+  },
+  mobile: {
+    targetScene: 'mobile',
+    displayName: 'Courier & Mobile Portals',
+    mediaType: '3d-procedural',
+    focalPoint: { x: 50, y: 50 },
+    scalingMode: 'cover',
+    overlayColor: '#080D1A',
+    overlayOpacity: 0.5,
+    brightness: 1.0,
+    saturation: 1.0,
+    blur: 0,
+    parallaxIntensity: 0.4,
+    particlesEnabled: true,
+    transitionDuration: 1.0,
+    status: 'published',
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'System Default',
+  },
+};
+
+// GET /api/backgrounds - Public: get all published configs
+app.get('/api/backgrounds', (_req: Request, res: Response) => {
+  const stored = (db.get('backgroundStudioConfigs') || {}) as Record<string, any>;
+  const result: Record<string, any> = { ...DEFAULT_BACKGROUND_CONFIGS };
+  for (const scene of Object.keys(DEFAULT_BACKGROUND_CONFIGS)) {
+    if (stored[scene] && stored[scene].status === 'published') {
+      result[scene] = stored[scene];
+    }
+  }
+  res.json(result);
+});
+
+// GET /api/backgrounds/:targetScene - Public or Admin: get config for scene
+app.get('/api/backgrounds/:targetScene', (req: Request, res: Response) => {
+  const { targetScene } = req.params;
+  const stored = (db.get('backgroundStudioConfigs') || {}) as Record<string, any>;
+  const config = stored[targetScene] || DEFAULT_BACKGROUND_CONFIGS[targetScene] || DEFAULT_BACKGROUND_CONFIGS.sunrise;
+  res.json(config);
+});
+
+// POST /api/admin/backgrounds/:targetScene/draft - Save draft
+app.post('/api/admin/backgrounds/:targetScene/draft', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const { targetScene } = req.params;
+  const stored = (db.get('backgroundStudioConfigs') || {}) as Record<string, any>;
+  const existing = stored[targetScene] || DEFAULT_BACKGROUND_CONFIGS[targetScene] || DEFAULT_BACKGROUND_CONFIGS.sunrise;
+
+  const updatedConfig = {
+    ...existing,
+    ...req.body,
+    targetScene,
+    status: 'draft',
+    updatedAt: new Date().toISOString(),
+    updatedBy: admin.email || 'Admin',
+  };
+
+  stored[targetScene] = updatedConfig;
+  db.set('backgroundStudioConfigs', stored);
+
+  res.json({ success: true, config: updatedConfig });
+});
+
+// POST /api/admin/backgrounds/:targetScene/publish - Publish live & record revision
+app.post('/api/admin/backgrounds/:targetScene/publish', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const { targetScene } = req.params;
+  const { note, ...configData } = req.body;
+  const stored = (db.get('backgroundStudioConfigs') || {}) as Record<string, any>;
+  const existing = stored[targetScene] || DEFAULT_BACKGROUND_CONFIGS[targetScene] || DEFAULT_BACKGROUND_CONFIGS.sunrise;
+
+  const publishedConfig = {
+    ...existing,
+    ...configData,
+    targetScene,
+    status: 'published',
+    updatedAt: new Date().toISOString(),
+    updatedBy: admin.email || 'Admin',
+  };
+
+  stored[targetScene] = publishedConfig;
+  db.set('backgroundStudioConfigs', stored);
+
+  // Record Revision
+  const revisions = db.get('backgroundRevisions') || [];
+  const revisionId = `rev_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const newRevision: BackgroundRevision = {
+    id: revisionId,
+    targetScene: targetScene as BackgroundTargetScene,
+    config: publishedConfig,
+    publishedAt: new Date().toISOString(),
+    publishedBy: admin.email || 'Admin',
+    note: note ? note.trim() : `Published update for ${targetScene} background`,
+  };
+  revisions.unshift(newRevision);
+  // Keep up to 30 revisions
+  if (revisions.length > 30) revisions.length = 30;
+  db.set('backgroundRevisions', revisions);
+
+  // Audit log
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'PUBLISH_BACKGROUND_STUDIO',
+    targetType: 'settings',
+    targetId: targetScene,
+    details: `Published background update for '${targetScene}' scene (${publishedConfig.mediaType}, note: "${newRevision.note}").`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, config: publishedConfig, revision: newRevision });
+});
+
+// GET /api/admin/backgrounds/:targetScene/revisions - Get revision history
+app.get('/api/admin/backgrounds/:targetScene/revisions', requireAdmin, (req: Request, res: Response) => {
+  const { targetScene } = req.params;
+  const revisions = db.get('backgroundRevisions') || [];
+  const filtered = revisions.filter((r: any) => r.targetScene === targetScene);
+  res.json(filtered);
+});
+
+// POST /api/admin/backgrounds/:targetScene/rollback - Rollback to revision
+app.post('/api/admin/backgrounds/:targetScene/rollback', requireAdmin, (req: Request, res: Response) => {
+  const admin = (req as any).user as User;
+  const { targetScene } = req.params;
+  const { revisionId } = req.body;
+
+  const revisions = db.get('backgroundRevisions') || [];
+  const targetRev = revisions.find((r: any) => r.id === revisionId && r.targetScene === targetScene);
+
+  if (!targetRev) {
+    return res.status(404).json({ error: 'Target revision not found' });
+  }
+
+  const stored = (db.get('backgroundStudioConfigs') || {}) as Record<string, any>;
+  const rolledBackConfig: BackgroundStudioConfig = {
+    ...targetRev.config,
+    targetScene: targetScene as BackgroundTargetScene,
+    status: 'published' as const,
+    updatedAt: new Date().toISOString(),
+    updatedBy: `Rollback by ${admin.email || 'Admin'}`,
+  };
+
+  stored[targetScene] = rolledBackConfig;
+  db.set('backgroundStudioConfigs', stored);
+
+  // Add rollback event to revisions
+  const newRevId = `rev_${Date.now()}_rb`;
+  const rollbackRev: BackgroundRevision = {
+    id: newRevId,
+    targetScene: targetScene as BackgroundTargetScene,
+    config: rolledBackConfig,
+    publishedAt: new Date().toISOString(),
+    publishedBy: admin.email || 'Admin',
+    note: `Rolled back to revision ${revisionId} (originally published at ${new Date(targetRev.publishedAt).toLocaleString()})`,
+  };
+  revisions.unshift(rollbackRev);
+  db.set('backgroundRevisions', revisions);
+
+  const auditLogs = db.get('auditLogs');
+  auditLogs.unshift({
+    id: `log_${Date.now()}`,
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'ROLLBACK_BACKGROUND_STUDIO',
+    targetType: 'settings',
+    targetId: targetScene,
+    details: `Rolled back '${targetScene}' background configuration to revision ${revisionId}.`,
+    timestamp: new Date().toISOString(),
+  });
+  db.set('auditLogs', auditLogs);
+
+  res.json({ success: true, config: rolledBackConfig });
 });
 
 // -------------------------------------------------------------

@@ -234,6 +234,39 @@ export interface BackgroundConfig {
   blur?: number;
 }
 
+export type BackgroundTargetScene = 'sunrise' | 'login' | 'homepage' | 'mobile' | 'admin';
+
+export interface BackgroundStudioConfig {
+  targetScene: BackgroundTargetScene;
+  displayName: string;
+  mediaType: '3d-procedural' | 'image' | 'video';
+  desktopUrl?: string;
+  mobileUrl?: string;
+  posterUrl?: string;
+  focalPoint: { x: number; y: number };
+  scalingMode: 'cover' | 'fit' | 'center';
+  overlayColor: string;
+  overlayOpacity: number; // 0 to 1
+  brightness: number;     // 0.5 to 1.5
+  saturation: number;     // 0 to 2.0
+  blur: number;           // 0 to 20 px
+  parallaxIntensity: number; // 0 to 1.0
+  particlesEnabled: boolean;
+  transitionDuration: number; // seconds
+  status: 'draft' | 'published';
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface BackgroundRevision {
+  id: string;
+  targetScene: BackgroundTargetScene;
+  config: BackgroundStudioConfig;
+  publishedAt: string;
+  publishedBy: string;
+  note: string;
+}
+
 export interface ThemeSettings {
   bgPrimary: string;
   bgSecondary: string;

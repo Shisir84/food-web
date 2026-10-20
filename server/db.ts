@@ -14,6 +14,8 @@ import type {
   ContactInquiry,
   ChatbotSettings,
   EmailSettings,
+  BackgroundStudioConfig,
+  BackgroundRevision,
 } from '../src/types/index.ts';
 
 const DB_FILE = path.resolve(process.cwd(), 'data', 'database.json');
@@ -35,6 +37,9 @@ export interface DatabaseSchema {
   contactInquiries?: ContactInquiry[];
   chatbotSettings?: ChatbotSettings;
   emailSettings?: EmailSettings;
+  backgroundStudio?: Record<string, any>;
+  backgroundStudioConfigs?: Record<string, any>;
+  backgroundRevisions?: BackgroundRevision[];
 }
 
 const INITIAL_FOOD_IMAGES = {

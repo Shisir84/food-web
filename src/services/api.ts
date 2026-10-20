@@ -600,4 +600,44 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+
+  // Background Studio API
+  async getBackgrounds() {
+    return this.request<Record<string, any>>('/api/backgrounds');
+  },
+
+  async getBackgroundScene(targetScene: string) {
+    return this.request<any>(`/api/backgrounds/${targetScene}`);
+  },
+
+  async saveBackgroundDraft(targetScene: string, config: any) {
+    return this.request<{ success: boolean; config: any }>(`/api/admin/backgrounds/${targetScene}/draft`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  },
+
+  async publishBackground(targetScene: string, payload: any) {
+    return this.request<{ success: boolean; config: any; revision: any }>(
+      `/api/admin/backgrounds/${targetScene}/publish`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  async getBackgroundRevisions(targetScene: string) {
+    return this.request<any[]>(`/api/admin/backgrounds/${targetScene}/revisions`);
+  },
+
+  async rollbackBackground(targetScene: string, revisionId: string) {
+    return this.request<{ success: boolean; config: any }>(
+      `/api/admin/backgrounds/${targetScene}/rollback`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ revisionId }),
+      }
+    );
+  },
 };

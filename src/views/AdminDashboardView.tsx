@@ -77,6 +77,7 @@ import {
   ChatbotSettings,
   EmailSettings,
 } from '../types/index.ts';
+import { BackgroundStudio } from '../components/admin/BackgroundStudio.tsx';
 
 interface AdminDashboardViewProps {
   onNavigate: (path: string) => void;
@@ -196,7 +197,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Appearance & Backgrounds State
-  const [appearanceTab, setAppearanceTab] = useState<'dashboard' | 'login' | 'theme'>('dashboard');
+  const [appearanceTab, setAppearanceTab] = useState<'studio' | 'dashboard' | 'login' | 'theme'>('studio');
   const [draftTheme, setDraftTheme] = useState<ThemeSettings>(theme);
   const [themeSaving, setThemeSaving] = useState(false);
 
@@ -2096,10 +2097,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
               </div>
 
               {/* Section Sub-Tabs */}
-              <div className="flex items-center gap-2 border-b border-inherit pb-3 text-xs font-semibold">
+              <div className="flex items-center gap-2 border-b border-inherit pb-3 text-xs font-semibold overflow-x-auto">
+                <button
+                  onClick={() => setAppearanceTab('studio')}
+                  className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    appearanceTab === 'studio'
+                      ? 'bg-gradient-to-r from-[#F18B58] to-[#FFD58A] text-black font-bold shadow-md'
+                      : 'text-stone-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Daybreak Background Studio</span>
+                </button>
                 <button
                   onClick={() => setAppearanceTab('dashboard')}
-                  className={`px-3 py-1.5 rounded-xl transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap ${
                     appearanceTab === 'dashboard' ? 'bg-orange-500 text-black font-bold' : 'text-stone-400 hover:text-white'
                   }`}
                 >
@@ -2107,7 +2119,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
                 </button>
                 <button
                   onClick={() => setAppearanceTab('login')}
-                  className={`px-3 py-1.5 rounded-xl transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap ${
                     appearanceTab === 'login' ? 'bg-orange-500 text-black font-bold' : 'text-stone-400 hover:text-white'
                   }`}
                 >
@@ -2115,13 +2127,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ onNaviga
                 </button>
                 <button
                   onClick={() => setAppearanceTab('theme')}
-                  className={`px-3 py-1.5 rounded-xl transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap ${
                     appearanceTab === 'theme' ? 'bg-orange-500 text-black font-bold' : 'text-stone-400 hover:text-white'
                   }`}
                 >
                   Colors & Brand Presets
                 </button>
               </div>
+
+              {/* Tab: Daybreak Background Studio */}
+              {appearanceTab === 'studio' && (
+                <BackgroundStudio isLight={isLight} />
+              )}
 
               {/* Tab: Dashboard Background */}
               {appearanceTab === 'dashboard' && (
