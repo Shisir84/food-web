@@ -82,7 +82,10 @@ function MainRouter() {
 
     // 3. Restaurants List: /restaurants
     if (currentPath === '/restaurants' || currentPath.startsWith('/restaurants?')) {
-      const urlParams = new URLSearchParams(window.location.search);
+      const searchParamsString = currentPath.includes('?')
+        ? currentPath.substring(currentPath.indexOf('?'))
+        : window.location.search;
+      const urlParams = new URLSearchParams(searchParamsString);
       const search = urlParams.get('search') || '';
       const category = urlParams.get('category') || '';
       return (

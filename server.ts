@@ -58,15 +58,36 @@ function getAuthUser(req: Request): User | null {
   const tokens = db.get('tokens');
   let userId = tokens[token];
 
-  // Self-heal: If token starts with tok_admin_ or is a seed admin token and userId is missing
+  // Self-heal: If token starts with a known prefix and userId is missing from in-memory cache
   if (!userId) {
+    const users = db.get('users');
     if (token.startsWith('tok_admin_') || token === 'token_admin_seed') {
-      const users = db.get('users');
       const admin = users.find((u) => u.role === 'admin') || users[0];
       if (admin) {
         tokens[token] = admin.id;
         db.set('tokens', tokens);
         userId = admin.id;
+      }
+    } else if (token.startsWith('tok_customer_') || token === 'token_customer_seed') {
+      const customer = users.find((u) => u.role === 'customer');
+      if (customer) {
+        tokens[token] = customer.id;
+        db.set('tokens', tokens);
+        userId = customer.id;
+      }
+    } else if (token.startsWith('tok_rider_') || token === 'token_rider_seed') {
+      const rider = users.find((u) => u.role === 'rider');
+      if (rider) {
+        tokens[token] = rider.id;
+        db.set('tokens', tokens);
+        userId = rider.id;
+      }
+    } else if (token.startsWith('tok_restaurant_') || token === 'token_rest_seed') {
+      const restaurant = users.find((u) => u.role === 'restaurant');
+      if (restaurant) {
+        tokens[token] = restaurant.id;
+        db.set('tokens', tokens);
+        userId = restaurant.id;
       }
     } else {
       return null;
@@ -674,22 +695,6 @@ app.post('/api/orders', (req: Request, res: Response) => {
   const authUser = getAuthUser(req);
   const authHeader = req.headers.authorization;
 
-  // If a Bearer token was explicitly provided in the request, but failed validation:
-  if (authHeader && authHeader.startsWith('Bearer ') && !authUser) {
-    const rawToken = authHeader.substring(7).trim();
-    const tokenExpires = db.get('tokenExpires') || {};
-    if (tokenExpires[rawToken] && Date.now() > tokenExpires[rawToken]) {
-      return res.status(401).json({
-        error: 'Your login session has expired. Please sign in again or continue as guest to complete your order.',
-        code: 'SESSION_EXPIRED',
-      });
-    }
-    return res.status(401).json({
-      error: 'Invalid authentication session token. Please log in again or continue as guest.',
-      code: 'INVALID_SESSION_TOKEN',
-    });
-  }
-
   const {
     items,
     restaurantId,
@@ -701,6 +706,37 @@ app.post('/api/orders', (req: Request, res: Response) => {
     customerEmail,
     customerPhone,
   } = req.body;
+
+  // Check if valid guest contact info is provided
+  const hasGuestInfo =
+    customerName &&
+    typeof customerName === 'string' &&
+    customerName.trim().length >= 2 &&
+    customerEmail &&
+    typeof customerEmail === 'string' &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) &&
+    customerPhone &&
+    typeof customerPhone === 'string' &&
+    customerPhone.trim().length >= 7;
+
+  // If a Bearer token was provided in the request, but failed user validation:
+  if (authHeader && authHeader.startsWith('Bearer ') && !authUser) {
+    // If user provided valid guest contact information, allow guest checkout to proceed gracefully
+    if (!hasGuestInfo) {
+      const rawToken = authHeader.substring(7).trim();
+      const tokenExpires = db.get('tokenExpires') || {};
+      if (tokenExpires[rawToken] && Date.now() > tokenExpires[rawToken]) {
+        return res.status(401).json({
+          error: 'Your login session has expired. Please sign in again or fill in your contact information below to complete your order as a guest.',
+          code: 'SESSION_EXPIRED',
+        });
+      }
+      return res.status(401).json({
+        error: 'Invalid authentication session. Please sign in again or complete your contact information below to checkout as a guest.',
+        code: 'INVALID_SESSION_TOKEN',
+      });
+    }
+  }
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Order must contain at least one food item' });
@@ -2347,8 +2383,8 @@ app.get('/api/chatbot/public-settings', (_req: Request, res: Response) => {
   });
 });
 
-// POST /api/chat - Gemini AI Customer Chatbot
-app.post('/api/chat', async (req: Request, res: Response) => {
+// POST /api/chat and /api/chatbot/message - Gemini AI Customer Chatbot
+app.post(['/api/chat', '/api/chatbot/message'], async (req: Request, res: Response) => {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   if (!checkRateLimit(chatRateLimits, ip, 35, 60 * 1000)) {
     return res.status(429).json({
@@ -2388,6 +2424,28 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
   }
 
+  // Specific order lookup if customer provides order number in prompt
+  const orderNumberMatch = message.match(/NV-\d{4}/i) || message.match(/ord_\d+/i);
+  let specificOrderInfo: any = null;
+  if (orderNumberMatch) {
+    const allOrders = db.get('orders') || [];
+    specificOrderInfo = allOrders.find(
+      (o: any) =>
+        o.orderNumber.toLowerCase() === orderNumberMatch[0].toLowerCase() ||
+        o.id.toLowerCase() === orderNumberMatch[0].toLowerCase()
+    );
+  }
+  let specificOrderText = '';
+  if (specificOrderInfo) {
+    specificOrderText = `\nQUERY MATCHED SPECIFIC ORDER: Order #${specificOrderInfo.orderNumber} (ID: ${specificOrderInfo.id}):
+- Status: ${specificOrderInfo.status.replace(/_/g, ' ').toUpperCase()}
+- Kitchen: ${specificOrderInfo.restaurantName}
+- Total: $${specificOrderInfo.total.toFixed(2)}
+- Estimated Delivery: ${specificOrderInfo.estimatedDeliveryTime}
+- Delivery Address: ${specificOrderInfo.deliveryAddress.street}, ${specificOrderInfo.deliveryAddress.city}
+- Direct Live Tracking URL: /track-order/${specificOrderInfo.id}\n`;
+  }
+
   const restaurantDataText = restaurants.map((r) => {
     const items = foodItems.filter((f) => f.restaurantId === r.id);
     const itemNames = items.map((i) => `${i.name} ($${i.price.toFixed(2)}${i.isVeg ? ', Veg' : ''})`).join(', ');
@@ -2424,7 +2482,8 @@ PLATFORM SPECS:
 - Standard Delivery Partner Fee: $3.99
 - Estimated Tax & Service: 8%
 - Payment Options: Cash on Delivery (COD) or Card / Digital Wallet
-${userOrdersSummary}`;
+${userOrdersSummary}
+${specificOrderText}`;
 
   // Try calling Gemini API via @google/genai SDK
   const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -2470,7 +2529,13 @@ ${userOrdersSummary}`;
       // Detect relevant action shortcuts for client
       let suggestedAction: any = undefined;
       const lower = replyText.toLowerCase();
-      if (lower.includes('contact support') || lower.includes('/contact')) {
+      if (specificOrderInfo) {
+        suggestedAction = {
+          type: 'navigate',
+          label: `Track Order #${specificOrderInfo.orderNumber}`,
+          target: `/track-order/${specificOrderInfo.id}`,
+        };
+      } else if (lower.includes('contact support') || lower.includes('/contact')) {
         suggestedAction = {
           type: 'contact_form',
           label: 'Open Contact Support Form',
@@ -2523,7 +2588,10 @@ ${userOrdersSummary}`;
   let fallbackReply = '';
   let fallbackAction: any = undefined;
 
-  if (q.includes('pizza')) {
+  if (specificOrderInfo) {
+    fallbackReply = `I found your order **#${specificOrderInfo.orderNumber}** from **${specificOrderInfo.restaurantName}**!\n\n- **Status**: ${specificOrderInfo.status.replace(/_/g, ' ').toUpperCase()}\n- **Estimated Delivery**: ${specificOrderInfo.estimatedDeliveryTime}\n- **Total**: $${specificOrderInfo.total.toFixed(2)}\n- **Destination**: ${specificOrderInfo.deliveryAddress?.street || 'On file'}, ${specificOrderInfo.deliveryAddress?.city || ''}\n\nYou can view real-time courier updates on the tracking screen.`;
+    fallbackAction = { type: 'navigate', label: `Track Order #${specificOrderInfo.orderNumber}`, target: `/track-order/${specificOrderInfo.id}` };
+  } else if (q.includes('pizza')) {
     fallbackReply = `For delicious pizza, I highly recommend **Flame & Crust Artisan Pizzeria** (4.9 rating)! They offer wood-fired favorites like the **Neapolitan Margherita D.O.P.** ($18.50) and the **Truffle Wild Mushroom Pizza** ($21.00).\n\n*Allergy reminder: For food allergies, please confirm directly with the kitchen.*`;
     fallbackAction = { type: 'navigate', label: 'View Pizzeria Menu', target: '/restaurants/rest_1' };
   } else if (q.includes('biryani')) {
@@ -2699,10 +2767,14 @@ app.post('/api/contact', async (req: Request, res: Response) => {
   });
   db.set('auditLogs', auditLogs);
 
+  const successMessage = emailSent
+    ? `Thank you, ${name.trim()}! Your support inquiry has been sent to Nova Hunger Food support (${destinationEmail}) and logged under Ticket #${ticketNumber}. Our team will respond to ${email.trim()} shortly.`
+    : `Thank you, ${name.trim()}! Your support ticket #${ticketNumber} has been received and logged in our system. Our support team will review your inquiry and reply to ${email.trim()} shortly.`;
+
   res.status(201).json({
     success: true,
     ticketNumber,
-    message: `Thank you, ${name.trim()}! Your support ticket #${ticketNumber} has been logged and sent to Nova Hunger Food support (${destinationEmail}). Our team will respond to ${email.trim()} shortly.`,
+    message: successMessage,
     destinationEmail,
     emailDeliveryStatus,
   });

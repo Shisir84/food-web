@@ -21,8 +21,9 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'all');
   const [onlyVeg, setOnlyVeg] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const categories = ['all', 'Pizza', 'Burgers', 'Biryani', 'Momo', 'Fast Food', 'Italian'];
+  const categories = ['all', 'Pizza', 'Burgers', 'Biryani', 'Momo', 'Fast Food', 'Italian', 'Desserts'];
 
   useEffect(() => {
     setSearch(initialSearch);
@@ -32,24 +33,54 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
     setSelectedCategory(initialCategory || 'all');
   }, [initialCategory]);
 
-  useEffect(() => {
-    async function fetchRestaurants() {
-      setIsLoading(true);
-      try {
-        const data = await api.getRestaurants({
-          search: search || undefined,
-          category: selectedCategory !== 'all' ? selectedCategory : undefined,
-          vegOnly: onlyVeg,
-        });
-        setRestaurants(data);
-      } catch (err) {
-        console.error('Error fetching restaurants:', err);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadRestaurants = async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const data = await api.getRestaurants({
+        search: search.trim() || undefined,
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        vegOnly: onlyVeg,
+      });
+      setRestaurants(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      console.error('Error fetching restaurants:', err);
+      setFetchError(err.message || 'Unable to retrieve restaurants from the server.');
+      setRestaurants([]);
+    } finally {
+      setIsLoading(false);
     }
-    fetchRestaurants();
+  };
+
+  useEffect(() => {
+    loadRestaurants();
   }, [search, selectedCategory, onlyVeg]);
+
+  const handleSelectCategory = (cat: string) => {
+    setSelectedCategory(cat);
+    const params = new URLSearchParams();
+    if (cat !== 'all') params.set('category', cat);
+    if (search.trim()) params.set('search', search.trim());
+    const qs = params.toString();
+    window.history.replaceState({}, '', `/restaurants${qs ? `?${qs}` : ''}`);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    const params = new URLSearchParams();
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (val.trim()) params.set('search', val.trim());
+    const qs = params.toString();
+    window.history.replaceState({}, '', `/restaurants${qs ? `?${qs}` : ''}`);
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setSelectedCategory('all');
+    setOnlyVeg(false);
+    setFetchError(null);
+    window.history.replaceState({}, '', '/restaurants');
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -73,8 +104,8 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search kitchens or food..."
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search kitchens, dishes, cuisines..."
             className="w-full bg-[#151518] border border-[#2B2B30] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-stone-500 focus:outline-none focus:border-[#FF7900] transition-colors"
           />
         </div>
@@ -86,9 +117,9 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => handleSelectCategory(cat)}
               className={`px-3.5 py-1.5 text-xs font-medium rounded-xl whitespace-nowrap transition-all duration-200 ${
-                selectedCategory === cat
+                selectedCategory.toLowerCase() === cat.toLowerCase()
                   ? 'bg-gradient-to-r from-[#FF7900] to-[#FF9D00] text-black font-bold shadow-md shadow-[#FF7900]/20'
                   : 'bg-[#151518] border border-[#2B2B30] text-[#B8B8C0] hover:text-white hover:border-[#FF7900]/40'
               }`}
@@ -110,6 +141,19 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
           <span>Veg Only</span>
         </button>
       </div>
+
+      {/* Network or Server Error Message */}
+      {fetchError && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-center justify-between gap-4">
+          <span>{fetchError}</span>
+          <button
+            onClick={() => loadRestaurants()}
+            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0"
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* Restaurant Grid */}
       {isLoading ? (
@@ -143,16 +187,14 @@ export const RestaurantsView: React.FC<RestaurantsViewProps> = ({
           <div className="space-y-1">
             <h3 className="text-base font-bold text-white">No restaurants found</h3>
             <p className="text-xs text-[#B8B8C0]">
-              Try adjusting your search criteria or choosing a different flavor category.
+              {search || selectedCategory !== 'all' || onlyVeg
+                ? 'Try adjusting your search query, turning off vegetarian filters, or picking a different category.'
+                : 'No approved restaurants are currently available.'}
             </p>
           </div>
           <button
-            onClick={() => {
-              setSearch('');
-              setSelectedCategory('all');
-              setOnlyVeg(false);
-            }}
-            className="btn-primary px-4 py-2 text-xs font-bold"
+            onClick={handleResetFilters}
+            className="btn-primary px-5 py-2.5 text-xs font-bold"
           >
             Reset Filters
           </button>

@@ -265,6 +265,39 @@
           "postalCode": "10001"
         }
       ]
+    },
+    {
+      "id": "usr_guest_1792413691146_m508b",
+      "name": "Homer Simpson",
+      "email": "homer@springfield.org",
+      "role": "customer",
+      "phone": "+1 (555) 012-3456",
+      "createdAt": "2026-10-19T12:41:31.146Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "id": "addr_test_guest",
+          "street": "742 Evergreen Terrace",
+          "city": "Metropolis",
+          "postalCode": "10001"
+        }
+      ]
+    },
+    {
+      "id": "usr_guest_1792414894403_bvr8a",
+      "name": "Aarav Sharma",
+      "email": "aarav@example.com",
+      "role": "customer",
+      "phone": "+977 9812345678",
+      "createdAt": "2026-10-19T13:01:34.403Z",
+      "status": "active",
+      "savedAddresses": [
+        {
+          "street": "123 New Road",
+          "city": "Kathmandu",
+          "postalCode": "44600"
+        }
+      ]
     }
   ],
   "passwords": {
@@ -310,7 +343,12 @@
     "tok_admin_1792379975571_ky8l89b": "usr_admin",
     "tok_admin_1792379979754_tyleouk": "usr_admin",
     "tok_admin_1792380757564_rpm263g": "usr_admin",
-    "tok_admin_1792381851159_up3wmuq": "usr_admin"
+    "tok_admin_1792381851159_up3wmuq": "usr_admin",
+    "tok_customer_1792413691165_f9jcvzr": "usr_customer_1",
+    "tok_customer_1792413710398_skn3v5c": "usr_customer_1",
+    "tok_customer_1792413771714_qk3mzsy": "usr_customer_1",
+    "tok_customer_1792413788920_rcajfa7": "usr_customer_1",
+    "tok_customer_1792414924946_xfm0w76": "usr_customer_1"
   },
   "riders": [
     {
@@ -421,8 +459,8 @@
       "minOrder": 15,
       "status": "approved",
       "isAvailable": true,
-      "totalOrders": 1841,
-      "totalRevenue": 47863.95,
+      "totalOrders": 1852,
+      "totalRevenue": 48147.600000000006,
       "cuisineTypes": [
         "Pizza",
         "Italian",
@@ -449,8 +487,8 @@
       "minOrder": 20,
       "status": "approved",
       "isAvailable": true,
-      "totalOrders": 2450,
-      "totalRevenue": 64100,
+      "totalOrders": 2453,
+      "totalRevenue": 64218.88999999999,
       "cuisineTypes": [
         "Biryani",
         "Mughlai",
@@ -799,6 +837,633 @@
     }
   ],
   "orders": [
+    {
+      "id": "ord_1792414924952",
+      "orderNumber": "NV-7162",
+      "customerId": "usr_customer_1",
+      "customerName": "Elena Rostova",
+      "customerPhone": "+1 (555) 014-4821",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 2,
+          "subtotal": 37,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 37,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 2.96,
+      "total": 43.95,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "street": "456 Thamel Marg",
+        "city": "Kathmandu",
+        "postalCode": "44600"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T13:02:04.952Z",
+          "note": "Order placed by Elena Rostova via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T13:02:04.952Z",
+      "updatedAt": "2026-10-19T13:02:04.952Z"
+    },
+    {
+      "id": "ord_1792414924931",
+      "orderNumber": "NV-6243",
+      "customerId": "usr_guest_1792414894403_bvr8a",
+      "customerName": "Aarav Sharma",
+      "customerPhone": "+977 9812345678",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "street": "123 New Road",
+        "city": "Kathmandu",
+        "postalCode": "44600"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T13:02:04.931Z",
+          "note": "Order placed by Aarav Sharma via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T13:02:04.931Z",
+      "updatedAt": "2026-10-19T13:02:04.931Z"
+    },
+    {
+      "id": "ord_1792414894405",
+      "orderNumber": "NV-8196",
+      "customerId": "usr_guest_1792414894403_bvr8a",
+      "customerName": "Aarav Sharma",
+      "customerPhone": "+977 9812345678",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "street": "123 New Road",
+        "city": "Kathmandu",
+        "postalCode": "44600"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T13:01:34.405Z",
+          "note": "Order placed by Aarav Sharma via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T13:01:34.405Z",
+      "updatedAt": "2026-10-19T13:01:34.405Z"
+    },
+    {
+      "id": "ord_1792413788925",
+      "orderNumber": "NV-7441",
+      "customerId": "usr_customer_1",
+      "customerName": "Elena Rostova",
+      "customerPhone": "+1 (555) 014-4821",
+      "restaurantId": "rest_2",
+      "restaurantName": "The Royal Dum Darbar",
+      "restaurantAddress": "88 Saffron Lane, North Heritage",
+      "items": [
+        {
+          "foodId": "food_5",
+          "name": "The Nova Signature Double Smash",
+          "unitPrice": 16.5,
+          "quantity": 2,
+          "subtotal": 33,
+          "isVeg": false
+        }
+      ],
+      "subtotal": 33,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 2.64,
+      "total": 39.63,
+      "paymentMethod": "card_online",
+      "paymentStatus": "paid",
+      "deliveryAddress": {
+        "id": "addr_auth",
+        "street": "100 Central Plaza",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:43:08.925Z",
+          "note": "Order placed by Elena Rostova via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:43:08.925Z",
+      "updatedAt": "2026-10-19T12:43:08.925Z"
+    },
+    {
+      "id": "ord_1792413788912",
+      "orderNumber": "NV-8350",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:43:08.912Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:43:08.912Z",
+      "updatedAt": "2026-10-19T12:43:08.912Z"
+    },
+    {
+      "id": "ord_1792413788902",
+      "orderNumber": "NV-3988",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:43:08.902Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:43:08.902Z",
+      "updatedAt": "2026-10-19T12:43:08.902Z"
+    },
+    {
+      "id": "ord_1792413771720",
+      "orderNumber": "NV-2154",
+      "customerId": "usr_customer_1",
+      "customerName": "Elena Rostova",
+      "customerPhone": "+1 (555) 014-4821",
+      "restaurantId": "rest_2",
+      "restaurantName": "The Royal Dum Darbar",
+      "restaurantAddress": "88 Saffron Lane, North Heritage",
+      "items": [
+        {
+          "foodId": "food_5",
+          "name": "The Nova Signature Double Smash",
+          "unitPrice": 16.5,
+          "quantity": 2,
+          "subtotal": 33,
+          "isVeg": false
+        }
+      ],
+      "subtotal": 33,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 2.64,
+      "total": 39.63,
+      "paymentMethod": "card_online",
+      "paymentStatus": "paid",
+      "deliveryAddress": {
+        "id": "addr_auth",
+        "street": "100 Central Plaza",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:42:51.720Z",
+          "note": "Order placed by Elena Rostova via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:42:51.720Z",
+      "updatedAt": "2026-10-19T12:42:51.720Z"
+    },
+    {
+      "id": "ord_1792413771707",
+      "orderNumber": "NV-2348",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:42:51.707Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:42:51.707Z",
+      "updatedAt": "2026-10-19T12:42:51.707Z"
+    },
+    {
+      "id": "ord_1792413771700",
+      "orderNumber": "NV-7419",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:42:51.700Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:42:51.700Z",
+      "updatedAt": "2026-10-19T12:42:51.700Z"
+    },
+    {
+      "id": "ord_1792413710404",
+      "orderNumber": "NV-8071",
+      "customerId": "usr_customer_1",
+      "customerName": "Elena Rostova",
+      "customerPhone": "+1 (555) 014-4821",
+      "restaurantId": "rest_2",
+      "restaurantName": "The Royal Dum Darbar",
+      "restaurantAddress": "88 Saffron Lane, North Heritage",
+      "items": [
+        {
+          "foodId": "food_5",
+          "name": "The Nova Signature Double Smash",
+          "unitPrice": 16.5,
+          "quantity": 2,
+          "subtotal": 33,
+          "isVeg": false
+        }
+      ],
+      "subtotal": 33,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 2.64,
+      "total": 39.63,
+      "paymentMethod": "card_online",
+      "paymentStatus": "paid",
+      "deliveryAddress": {
+        "id": "addr_auth",
+        "street": "100 Central Plaza",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:41:50.404Z",
+          "note": "Order placed by Elena Rostova via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:41:50.404Z",
+      "updatedAt": "2026-10-19T12:41:50.404Z"
+    },
+    {
+      "id": "ord_1792413710392",
+      "orderNumber": "NV-1673",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:41:50.392Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:41:50.392Z",
+      "updatedAt": "2026-10-19T12:41:50.392Z"
+    },
+    {
+      "id": "ord_1792413710384",
+      "orderNumber": "NV-5569",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:41:50.384Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:41:50.384Z",
+      "updatedAt": "2026-10-19T12:41:50.384Z"
+    },
+    {
+      "id": "ord_1792413691157",
+      "orderNumber": "NV-4773",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:41:31.157Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:41:31.157Z",
+      "updatedAt": "2026-10-19T12:41:31.157Z"
+    },
+    {
+      "id": "ord_1792413691147",
+      "orderNumber": "NV-1789",
+      "customerId": "usr_guest_1792413691146_m508b",
+      "customerName": "Homer Simpson",
+      "customerPhone": "+1 (555) 012-3456",
+      "restaurantId": "rest_1",
+      "restaurantName": "Flame & Crust Artisan Pizzeria",
+      "restaurantAddress": "42 Baker Street, Downtown",
+      "items": [
+        {
+          "foodId": "food_1",
+          "name": "Neapolitan Margherita D.O.P.",
+          "unitPrice": 18.5,
+          "quantity": 1,
+          "subtotal": 18.5,
+          "isVeg": true
+        }
+      ],
+      "subtotal": 18.5,
+      "deliveryFee": 3.99,
+      "discount": 0,
+      "tax": 1.48,
+      "total": 23.97,
+      "paymentMethod": "cash_on_delivery",
+      "paymentStatus": "pending",
+      "deliveryAddress": {
+        "id": "addr_test_guest",
+        "street": "742 Evergreen Terrace",
+        "city": "Metropolis",
+        "postalCode": "10001"
+      },
+      "deliveryInstructions": "",
+      "status": "placed",
+      "statusHistory": [
+        {
+          "status": "placed",
+          "timestamp": "2026-10-19T12:41:31.147Z",
+          "note": "Order placed by Homer Simpson via Nova Hunger Food."
+        }
+      ],
+      "estimatedDeliveryTime": "30-40 minutes",
+      "createdAt": "2026-10-19T12:41:31.147Z",
+      "updatedAt": "2026-10-19T12:41:31.147Z"
+    },
     {
       "id": "ord_1792412060308",
       "orderNumber": "NV-8023",
@@ -1151,6 +1816,26 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1792414993343",
+      "adminId": "system",
+      "adminEmail": "rohan.thapa@example.com",
+      "action": "CONTACT_SUPPORT_INQUIRY",
+      "targetType": "user",
+      "targetId": "inq_1792414993341_bjedt",
+      "details": "Customer inquiry from Rohan Thapa (rohan.thapa@example.com): [Inquiry about corporate catering] (TKT-903619). Delivery status: stored_locally_awaiting_gmail_auth.",
+      "timestamp": "2026-10-19T13:03:13.343Z"
+    },
+    {
+      "id": "log_1792413799125",
+      "adminId": "system",
+      "adminEmail": "maya.lin@example.com",
+      "action": "CONTACT_SUPPORT_INQUIRY",
+      "targetType": "user",
+      "targetId": "inq_1792413799124_djisj",
+      "details": "Customer inquiry from Maya Lin (maya.lin@example.com): [Inquiry regarding corporate catering] (TKT-507802). Delivery status: stored_locally_awaiting_gmail_auth.",
+      "timestamp": "2026-10-19T12:43:19.125Z"
+    },
     {
       "id": "log_1792412060301",
       "adminId": "system",
@@ -1574,6 +2259,146 @@
   ],
   "notifications": [
     {
+      "id": "notif_1792414924954",
+      "userId": "usr_customer_1",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-7162 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792414924952",
+      "createdAt": "2026-10-19T13:02:04.954Z"
+    },
+    {
+      "id": "notif_1792414924933",
+      "userId": "usr_guest_1792414894403_bvr8a",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-6243 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792414924931",
+      "createdAt": "2026-10-19T13:02:04.933Z"
+    },
+    {
+      "id": "notif_1792414894407",
+      "userId": "usr_guest_1792414894403_bvr8a",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-8196 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792414894405",
+      "createdAt": "2026-10-19T13:01:34.407Z"
+    },
+    {
+      "id": "notif_1792413788927",
+      "userId": "usr_customer_1",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-7441 from The Royal Dum Darbar has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413788925",
+      "createdAt": "2026-10-19T12:43:08.927Z"
+    },
+    {
+      "id": "notif_1792413788914",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-8350 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413788912",
+      "createdAt": "2026-10-19T12:43:08.914Z"
+    },
+    {
+      "id": "notif_1792413788904",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-3988 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413788902",
+      "createdAt": "2026-10-19T12:43:08.904Z"
+    },
+    {
+      "id": "notif_1792413771723",
+      "userId": "usr_customer_1",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-2154 from The Royal Dum Darbar has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413771720",
+      "createdAt": "2026-10-19T12:42:51.723Z"
+    },
+    {
+      "id": "notif_1792413771710",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-2348 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413771707",
+      "createdAt": "2026-10-19T12:42:51.710Z"
+    },
+    {
+      "id": "notif_1792413771702",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-7419 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413771700",
+      "createdAt": "2026-10-19T12:42:51.702Z"
+    },
+    {
+      "id": "notif_1792413710405",
+      "userId": "usr_customer_1",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-8071 from The Royal Dum Darbar has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413710404",
+      "createdAt": "2026-10-19T12:41:50.405Z"
+    },
+    {
+      "id": "notif_1792413710393",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-1673 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413710392",
+      "createdAt": "2026-10-19T12:41:50.393Z"
+    },
+    {
+      "id": "notif_1792413710386",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-5569 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413710384",
+      "createdAt": "2026-10-19T12:41:50.386Z"
+    },
+    {
+      "id": "notif_1792413691159",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-4773 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413691157",
+      "createdAt": "2026-10-19T12:41:31.159Z"
+    },
+    {
+      "id": "notif_1792413691150",
+      "userId": "usr_guest_1792413691146_m508b",
+      "title": "Order Confirmed! 🍽️",
+      "message": "Your order #NV-1789 from Flame & Crust Artisan Pizzeria has been placed.",
+      "type": "order",
+      "isRead": false,
+      "link": "/track-order/ord_1792413691147",
+      "createdAt": "2026-10-19T12:41:31.150Z"
+    },
+    {
       "id": "notif_1792412060309",
       "userId": "usr_guest_1792412060307_56pu3",
       "title": "Order Confirmed! 🍽️",
@@ -1674,9 +2499,38 @@
     "tok_admin_1792379975571_ky8l89b": 1792466375572,
     "tok_admin_1792379979754_tyleouk": 1792466379755,
     "tok_admin_1792380757564_rpm263g": 1794972757566,
-    "tok_admin_1792381851159_up3wmuq": 1792468251160
+    "tok_admin_1792381851159_up3wmuq": 1792468251160,
+    "tok_customer_1792413691165_f9jcvzr": 1792500091166,
+    "tok_customer_1792413710398_skn3v5c": 1792500110399,
+    "tok_customer_1792413771714_qk3mzsy": 1792500171715,
+    "tok_customer_1792413788920_rcajfa7": 1792500188921,
+    "tok_customer_1792414924946_xfm0w76": 1792501324947
   },
   "contactInquiries": [
+    {
+      "id": "inq_1792414993341_bjedt",
+      "ticketNumber": "TKT-903619",
+      "name": "Rohan Thapa",
+      "email": "rohan.thapa@example.com",
+      "subject": "Inquiry about corporate catering",
+      "message": "Hello Nova Hunger team, we are interested in ordering catering for an upcoming 40-person tech meetup in Kathmandu.",
+      "status": "new",
+      "emailSent": false,
+      "emailDeliveryStatus": "stored_locally_awaiting_gmail_auth",
+      "createdAt": "2026-10-19T13:03:13.341Z"
+    },
+    {
+      "id": "inq_1792413799124_djisj",
+      "ticketNumber": "TKT-507802",
+      "name": "Maya Lin",
+      "email": "maya.lin@example.com",
+      "subject": "Inquiry regarding corporate catering",
+      "message": "Hello Nova Hunger team, we are interested in ordering meals for an upcoming event.",
+      "status": "new",
+      "emailSent": false,
+      "emailDeliveryStatus": "stored_locally_awaiting_gmail_auth",
+      "createdAt": "2026-10-19T12:43:19.124Z"
+    },
     {
       "id": "inq_1792412060300_2hn27",
       "ticketNumber": "TKT-997917",

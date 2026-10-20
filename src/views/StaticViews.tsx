@@ -314,10 +314,11 @@ export const ContactView: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Your Full Name
+              <label htmlFor="contact_name" className="text-[11px] font-semibold text-stone-300 block mb-1">
+                Your Full Name <span className="text-orange-400">*</span>
               </label>
               <input
+                id="contact_name"
                 type="text"
                 required
                 value={name}
@@ -328,10 +329,11 @@ export const ContactView: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Email Address
+              <label htmlFor="contact_email" className="text-[11px] font-semibold text-stone-300 block mb-1">
+                Email Address <span className="text-orange-400">*</span>
               </label>
               <input
+                id="contact_email"
                 type="email"
                 required
                 value={email}
@@ -342,10 +344,11 @@ export const ContactView: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-stone-300 block mb-1">
+              <label htmlFor="contact_subject" className="text-[11px] font-semibold text-stone-300 block mb-1">
                 Subject
               </label>
               <input
+                id="contact_subject"
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
@@ -355,10 +358,11 @@ export const ContactView: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-stone-300 block mb-1">
-                Message
+              <label htmlFor="contact_message" className="text-[11px] font-semibold text-stone-300 block mb-1">
+                Message <span className="text-orange-400">*</span>
               </label>
               <textarea
+                id="contact_message"
                 rows={4}
                 required
                 value={message}

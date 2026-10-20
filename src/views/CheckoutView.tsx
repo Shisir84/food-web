@@ -177,6 +177,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ onNavigate }) => {
     setIsSubmitting(true);
 
     try {
+      // If user is not authenticated, ensure no stale authorization token is sent
+      if (!user && api.getToken()) {
+        api.clearToken();
+      }
+
       const orderPayload = {
         restaurantId,
         items: items.map((i) => ({
@@ -203,12 +208,13 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({ onNavigate }) => {
       if (
         errMsg.includes('Unauthorized') ||
         errMsg.includes('Valid session token required') ||
+        errMsg.includes('INVALID_SESSION_TOKEN') ||
         errMsg.includes('SESSION_EXPIRED') ||
         errMsg.includes('expired')
       ) {
         setSessionExpiredNotice(true);
         setErrorMessage(
-          'Your saved session has expired. You can complete this order immediately using Guest Checkout below, or sign in again.'
+          'Your previous session has expired. You can complete this order immediately as a guest below, or sign in again.'
         );
         // Clear stale token so guest submission succeeds immediately
         api.clearToken();

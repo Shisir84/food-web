@@ -194,8 +194,8 @@ export const NovaChatbot: React.FC<NovaChatbotProps> = ({ onNavigate }) => {
           <div className="w-6 h-6 rounded-full bg-black/20 flex items-center justify-center text-black">
             <Sparkles className="w-3.5 h-3.5 fill-current" />
           </div>
-          <span className="tracking-wide">Ask Nova AI</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-950 animate-ping" />
+          <span className="tracking-wide">Nova AI Assistant</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
         </button>
       )}
 
